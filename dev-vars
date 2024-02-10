@@ -1,0 +1,6 @@
+project_id                        = "csye-6225-cloud-computing"
+region                            = "us-east1"
+vpc_name                          = "dev-vpc"
+vpc_description                   = "Development Virtual Private Cloud"
+subnet_webapp_cidr                = "10.0.1.0/24"
+subnet_db_cidr                    = "10.0.2.0/24"
