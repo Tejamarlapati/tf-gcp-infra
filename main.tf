@@ -44,7 +44,7 @@ resource "google_compute_subnetwork" "db_subnet" {
 }
 
 # -----------------------------------------------------
-# Create a default router for the VPC
+# Create a default router (for Cloud NAT) in the VPC 
 # -----------------------------------------------------
 
 resource "google_compute_router" "vpc_router" {
@@ -55,7 +55,7 @@ resource "google_compute_router" "vpc_router" {
 }
 
 # -----------------------------------------------------
-# Create a NAT gateway for the webapp VPC
+# Create a Cloud NAT gateway for the webapp VPC for public access
 # -----------------------------------------------------
 resource "google_compute_router_nat" "vpc_nat" {
   name                               = "${var.vpc_name}-nat"
@@ -67,4 +67,22 @@ resource "google_compute_router_nat" "vpc_nat" {
     source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
   }
   depends_on = [google_compute_router.vpc_router]
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Create Firewall rules & tags for public access
+# ---------------------------------------------------------------------------------------------------------------------
+
+resource "google_compute_firewall" "public_allow_all_ingress" {
+  name          = "${var.vpc_name}-public-allow-ingress"
+  description   = "Firewall rule to allow ingress from anywhere to the VPC"
+  network       = google_compute_network.vpc_csye6225.self_link
+  target_tags   = var.firewall_public_allow_all_ingress_tags
+  direction     = "INGRESS"
+  source_ranges = ["0.0.0.0/0"]
+  priority      = "1000"
+  allow {
+    protocol = "all"
+  }
+  depends_on = [google_compute_network.vpc_csye6225]
 }
