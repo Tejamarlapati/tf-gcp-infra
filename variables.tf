@@ -77,3 +77,9 @@ variable "route_webapp_name" {
   type        = string
   default     = "webapp-route"
 }
+
+variable "firewall_public_allow_all_ingress_tags" {
+  description = "List of tags to allow all ingress traffic from. Default is [public]."
+  type        = list(string)
+  default     = ["public"]
+}
