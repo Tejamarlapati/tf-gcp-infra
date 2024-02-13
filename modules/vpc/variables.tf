@@ -1,4 +1,3 @@
-
 variable "vpc" {
   type = object({
     name                            = string
@@ -12,6 +11,14 @@ variable "vpc" {
       description              = string
       region                   = string
       private_ip_google_access = bool
+    }))
+    routes = list(object({
+      name             = string
+      dest_range       = string
+      next_hop_gateway = optional(string)
+      next_hop_ip      = optional(string)
+      next_hop_ilb     = optional(string)
+      tags             = optional(list(string))
     }))
   })
 

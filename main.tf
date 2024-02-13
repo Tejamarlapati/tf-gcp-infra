@@ -20,12 +20,22 @@ locals {
           private_ip_google_access = coalesce(subnet.private_ip_google_access, true)
         }
       ]
+      routes = vpc.routes == null ? [] : [
+        for route in vpc.routes : {
+          name             = route.name
+          dest_range       = route.dest_range
+          next_hop_gateway = route.next_hop_gateway
+          next_hop_ip      = route.next_hop_ip
+          next_hop_ilb     = route.next_hop_ilb
+          tags             = route.tags
+        }
+      ]
     }
   ]
 }
 
 # -----------------------------------------------------
-# Create GCP VPCs with subnets (merged with default values)
+# Create GCP VPCs with subnets & routes (merged with default values if not provided)
 # -----------------------------------------------------
 
 module "vpc" {
