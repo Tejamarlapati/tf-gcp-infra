@@ -26,7 +26,7 @@ variable "vpcs" {
   }))
 
   description = <<-_EOT
-  {
+  [{
     name                            = "(Required) The name of the VPC"
     description                     = "(Optional) The description of the VPC. Defaults to '{vpc.name} Virtual Private Cloud'"
     routing_mode                    = "(Optional) The network routing mode. Defaults to 'REGIONAL'"
@@ -38,9 +38,6 @@ variable "vpcs" {
       description              = "(Optional) The description of the subnet. Defaults to '{subnet.name} subnet for {vpc.name} VPC'"
       region                   = "(Optional) The region in which the subnet will be created. Defaults to the default region of provider"
       private_ip_google_access = "(Optional) Whether to enable private IP Google access. Defaults to 'true'"
-<<<<<<< Updated upstream
-    }
-=======
     }]
     routes = [{
       name             = "(Required) The name of the route"
@@ -52,7 +49,6 @@ variable "vpcs" {
       next_hop_ip      = "(Optional) The next hop IP of the route"
       next_hop_ilb     = "(Optional) The next hop ILB of the route"
     }]
->>>>>>> Stashed changes
   }
   _EOT
 }
