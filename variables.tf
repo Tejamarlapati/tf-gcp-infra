@@ -11,34 +11,32 @@ variable "region" {
 variable "vpcs" {
   type = list(object({
     name                            = string
-    description                     = optional(string, "%s VPC")
+    description                     = optional(string)
     routing_mode                    = optional(string, "REGIONAL")
-    region                          = optional(string)
     auto_create_subnets             = optional(bool, false)
     delete_default_routes_on_create = optional(bool, true)
     subnets = list(object({
       name                     = string
-      description              = optional(string, "%s subnet for %s VPC")
-      region                   = optional(string)
       ip_cidr_range            = string
+      description              = optional(string)
+      region                   = optional(string)
       private_ip_google_access = optional(bool, true)
     }))
   }))
 
   description = <<-_EOT
   {
-    name                            = "The name of the VPC"
-    description                     = "The description of the VPC"
-    routing_mode                    = "The network routing mode"
-    region                          = "The region in which the VPC will be created"
-    auto_create_subnets             = "Whether to create subnets automatically"
-    delete_default_routes_on_create = "Whether to delete the default route on create"
+    name                            = "(Required) The name of the VPC"
+    description                     = "(Optional) The description of the VPC. Defaults to '{vpc.name} Virtual Private Cloud'"
+    routing_mode                    = "(Optional) The network routing mode. Defaults to 'REGIONAL'"
+    auto_create_subnets             = "(Optional) Whether to create subnets automatically. Defaults to 'false'"
+    delete_default_routes_on_create = "(Optional) Whether to delete the default route on create. Defaults to 'true'"
     subnets                         =  {
-      name                     = "The name of the subnet"
-      description              = "The description of the subnet"
-      region                   = "The region in which the subnet will be created"
-      ip_cidr_range            = "The IP CIDR range of the subnet"
-      private_ip_google_access = "Whether to enable private IP Google access"
+      name                     = "(Required) The name of the subnet"
+      ip_cidr_range            = "(Required) The IP CIDR range of the subnet"
+      description              = "(Optional) The description of the subnet. Defaults to '{subnet.name} subnet for {vpc.name} VPC'"
+      region                   = "(Optional) The region in which the subnet will be created. Defaults to the default region of provider"
+      private_ip_google_access = "(Optional) Whether to enable private IP Google access. Defaults to 'true'"
     }
   }
   _EOT

@@ -7,9 +7,8 @@ locals {
   vpc_with_defaults = [
     for vpc_index, vpc in var.vpcs : {
       name                            = vpc.name
-      description                     = coalesce(vpc.description, format("%s VPC", vpc.name))
+      description                     = coalesce(vpc.description, format("%s Virtual Private Cloud", vpc.name))
       routing_mode                    = coalesce(vpc.routing_mode, "REGIONAL")
-      region                          = coalesce(vpc.region, var.region)
       auto_create_subnets             = coalesce(vpc.auto_create_subnets, false)
       delete_default_routes_on_create = coalesce(vpc.delete_default_routes_on_create, true)
       subnets = [
