@@ -6,6 +6,7 @@ variable "project_id" {
 variable "region" {
   description = "The default region in which to create the resources"
   type        = string
+  default     = "us-east1"
 }
 
 variable "vpcs" {
@@ -37,7 +38,21 @@ variable "vpcs" {
       description              = "(Optional) The description of the subnet. Defaults to '{subnet.name} subnet for {vpc.name} VPC'"
       region                   = "(Optional) The region in which the subnet will be created. Defaults to the default region of provider"
       private_ip_google_access = "(Optional) Whether to enable private IP Google access. Defaults to 'true'"
+<<<<<<< Updated upstream
     }
+=======
+    }]
+    routes = [{
+      name             = "(Required) The name of the route"
+      dest_range       = "(Required) The destination range of the route"
+      tags             = "(Optional) The tags of the route. Default is empty list"
+      
+      ** One of the next_hop_gateway, next_hop_ip or next_hop_ilb must be defined
+      next_hop_gateway = "(Optional) The next hop gateway of the route"
+      next_hop_ip      = "(Optional) The next hop IP of the route"
+      next_hop_ilb     = "(Optional) The next hop ILB of the route"
+    }]
+>>>>>>> Stashed changes
   }
   _EOT
 }
