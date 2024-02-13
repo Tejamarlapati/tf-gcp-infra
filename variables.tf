@@ -4,82 +4,42 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "The region in which to create the resources"
+  description = "The default region in which to create the resources"
   type        = string
 }
 
-variable "vpc_name" {
-  description = "Name of the Virtual Private Cloud (VPC)"
-  type        = string
-}
+variable "vpcs" {
+  type = list(object({
+    name                            = string
+    description                     = optional(string, "%s VPC")
+    routing_mode                    = optional(string, "REGIONAL")
+    region                          = optional(string)
+    auto_create_subnets             = optional(bool, false)
+    delete_default_routes_on_create = optional(bool, true)
+    subnets = list(object({
+      name                     = string
+      description              = optional(string, "%s subnet for %s VPC")
+      region                   = optional(string)
+      ip_cidr_range            = string
+      private_ip_google_access = optional(bool, true)
+    }))
+  }))
 
-variable "vpc_description" {
-  description = "Description of the Virtual Private Cloud (VPC)"
-  type        = string
-}
-
-variable "vpc_routing_mode" {
-  description = "VPC routing mode. Default is REGIONAL. Valid values are REGIONAL or GLOBAL."
-  type        = string
-  default     = "REGIONAL"
-}
-
-variable "vpc_auto_create_subnets" {
-  description = "Whether to create subnets in the VPC. Default is false."
-  type        = bool
-  default     = false
-}
-
-variable "vpc_delete_default_routes_on_create" {
-  description = "Whether to delete the default route created by the VPC. Default is true."
-  type        = bool
-  default     = true
-}
-
-variable "subnet_region" {
-  description = "The region in which to create the subnet. Default is us-east1."
-  type        = string
-  default     = null
-}
-
-variable "subnet_private_ip_google_access" {
-  description = "CIDR range for the subnets. Default is true."
-  type        = bool
-  default     = true
-}
-
-
-variable "subnet_webapp_name" {
-  description = "Name of the webapp subnet. Default is webapp-subnet."
-  type        = string
-  default     = "webapp-subnet"
-}
-
-
-variable "subnet_webapp_cidr" {
-  description = "CIDR range for the subnets for webapp"
-  type        = string
-}
-
-variable "subnet_db_name" {
-  description = "Name of the db subnet. Default is db-subnet."
-  type        = string
-  default     = "db-subnet"
-}
-
-variable "subnet_db_cidr" {
-  description = "CIDR range for the subnets for db"
-  type        = string
-}
-
-variable "route_webapp_name" {
-  description = "Name of the route for webapp. Default is webapp-route."
-  type        = string
-  default     = "webapp-route"
-}
-
-variable "firewall_public_allow_all_ingress_tags" {
-  description = "List of tags to allow all ingress traffic from. Default is [public]."
-  type        = list(string)
-  default     = ["public"]
+  description = <<-_EOT
+  {
+    name                            = "The name of the VPC"
+    description                     = "The description of the VPC"
+    routing_mode                    = "The network routing mode"
+    region                          = "The region in which the VPC will be created"
+    auto_create_subnets             = "Whether to create subnets automatically"
+    delete_default_routes_on_create = "Whether to delete the default route on create"
+    subnets                         =  {
+      name                     = "The name of the subnet"
+      description              = "The description of the subnet"
+      region                   = "The region in which the subnet will be created"
+      ip_cidr_range            = "The IP CIDR range of the subnet"
+      private_ip_google_access = "Whether to enable private IP Google access"
+    }
+  }
+  _EOT
 }
