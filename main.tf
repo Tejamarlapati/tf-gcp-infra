@@ -1,7 +1,3 @@
-provider "google" {
-  project = var.project_id
-  region  = var.region
-}
 
 locals {
   vpc_with_defaults = [

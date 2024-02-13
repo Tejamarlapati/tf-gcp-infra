@@ -6,6 +6,7 @@ variable "project_id" {
 variable "region" {
   description = "The default region in which to create the resources"
   type        = string
+  default     = "us-east1"
 }
 
 variable "vpcs" {
@@ -56,7 +57,7 @@ variable "vpcs" {
   }
 
   description = <<-_EOT
-  {
+  [{
     name                            = "(Required) The name of the VPC"
     description                     = "(Optional) The description of the VPC. Defaults to '{vpc.name} Virtual Private Cloud'"
     routing_mode                    = "(Optional) The network routing mode. Defaults to 'REGIONAL'"
