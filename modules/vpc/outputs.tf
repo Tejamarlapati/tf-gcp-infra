@@ -10,14 +10,15 @@ output "network" {
 # Subnet outputs
 # -----------------------------------------------------
 output "subnets" {
-  description = "A map of subnetworks. Key is the name of the subnetwork, value is reference to the subnetwork."
-  value       = { for subnet in google_compute_subnetwork.subnet : subnet.name => subnet }
+  description = "A list of subnets. Each element contains a reference to the subnet."
+  value       = [for subnet in google_compute_subnetwork.subnet : subnet]
 }
+
 
 # -----------------------------------------------------
 # Route outputs
 # -----------------------------------------------------
 output "routes" {
-  description = "A map of routes. Key is the name of the route, value is reference to the route."
-  value       = { for route in google_compute_route.route : route.name => route }
+  description = "A list of routes. Each element contains a reference to the route."
+  value       = [for route in google_compute_route.route : route]
 }

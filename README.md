@@ -4,59 +4,23 @@ This repo contains terraform files to setup Infrastructure as Code on Google Clo
 
 ---
 
-[![Terraform PR Check](https://github.com/CSYE6225-Cloud-Computing-Organization/tf-gcp-infra/actions/workflows/terraform_pr.yml/badge.svg)](https://github.com/CSYE6225-Cloud-Computing-Organization/tf-gcp-infra/actions/workflows/terraform_pr.yml)
-
 ## Infrastructure as Code with Terraform and GCP
 
----
+### Installation
 
-### Install and setup gCloud CLI
+Please follow the installation instructions required for setting up the project [here](INSTALLATION.md).
 
-To install and set up the Google Cloud SDK (gCloud CLI), follow the instructions in the [official documentation](https://cloud.google.com/sdk/docs/install). Ensure that you have the necessary permissions and authentication set up to interact with your Google Cloud Platform projects.
+### Enable gCloud services
 
-### Install Terraform
+This project relies on the following services to run for a project
 
-To install Terraform, follow these general steps:
+- `compute.googleapis.com`
 
-1. Download Terraform: Visit the [Terraform website](https://developer.hashicorp.com/terraform/install) and download the appropriate package for your operating system.
-2. Follow the installation instructions as specified.
-3. Verify Installation: Open a terminal or command prompt and run terraform -version to ensure Terraform has been installed correctly.
+These can be enabled from cli after setting up the default project using the following commands:
 
-        $ terraform -version
+    gcloud services enable compute.googleapis.com
 
-        Terraform v1.7.3
-        on darwin_arm64
-        + provider registry.terraform.io/hashicorp/google v5.15.0
-
-### Setup Terraform in repo
-
-To set up Terraform within your repository, follow these steps:
-
-1. **Navigate to Repository**: Open a terminal or command prompt and navigate to the root directory of your repository.
-2. **Initialize Terraform**: Run terraform init to initialize Terraform within the repository. This command initializes various Terraform configurations and plugins required for your infrastructure.
-
-        $ terraform init
-        Initializing the backend...
-        Initializing modules...
-
-        Initializing provider plugins...
-        - Reusing previous version of hashicorp/google from the dependency lock file
-        - Using previously-installed hashicorp/google v5.15.0
-        Terraform has been successfully initialized!
-
-3. **Plan Infrastructure Changes**: After initialization, you can run terraform plan to see what changes Terraform will make to your infrastructure. Use -var-file to specify a variable file if needed.
-
-        terraform plan -var-file=dev-vars.tfvars
-
-4. **Apply Infrastructure Changes**: If the plan looks good, you can apply the changes by running terraform apply. Use -var-file to specify a variable file if needed.
-
-        terraform apply -var-file=dev-vars.tfvars
-
-5. **Destroy Infrastructure**: To destroy the infrastructure created by Terraform, you can run terraform destroy. Make sure to review the plan before proceeding.
-
-        terraform destroy
-
----
+For additional info regarding enabling cli via services, refer [here](https://cloud.google.com/sdk/gcloud/reference/services/enable).
 
 ### What's in  this repo
 
@@ -103,17 +67,23 @@ The following variables are required to create multiple VPC via terraform.
 
 After deploying the VPCs using Terraform, you can retrieve information about the created VPCs, including their names, self-links, subnets, and routes, using the following outputs:
 
-| Output       | Description                                                                   |
-| ------------ | ----------------------------------------------------------------------------- |
-| vpc_networks | List of VPCs with their names, self-links, and associated subnets and routes. |
+| Output       | Description                                                     |
+| ------------ | --------------------------------------------------------------- |
+| vpc_networks | List of VPCs with their names, self-links, subnets, and routes. |
 
 #### Output Details
 
-- **vpc_networks**: This output provides a list of VPCs with their respective details, including:
-  - **name**: The name of the VPC.
-  - **self_link**: The self-link URL of the VPC.
-  - **subnets**: A list of subnets within the VPC, including their names, regions, and self-links.
-  - **routes**: A list of routes within the VPC, including their names and self-links.
+| Attribute          | Description                       |
+| ------------------ | --------------------------------- |
+| name               | The name of the VPC.              |
+| self_link          | The self-link URL of the VPC.     |
+| subnets            | A list of subnets within the VPC. |
+| subnets[name]      | The name of the subnet.           |
+| subnets[region]    | The region of the subnet.         |
+| subnets[self_link] | The self-link URL of the subnet.  |
+| routes             | A list of routes within the VPC.  |
+| routes[name]       | The name of the route.            |
+| routes[self_link]  | The self-link URL of the route.   |
 
 ## Examples
 
