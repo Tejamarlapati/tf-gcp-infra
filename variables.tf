@@ -68,6 +68,8 @@ variable "subnets" {
     : alltrue([for subnet in var.subnets : subnet.name != null && subnet.name != ""]))
     error_message = "Subnet names must not be empty."
   }
+
+  default = null
 }
 
 variable "routes" {
