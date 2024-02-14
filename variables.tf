@@ -47,11 +47,10 @@ variable "vpcs" {
   validation {
     // Condition to check if there are routes then if one of next_hop_gateway, next_hop_ip or next_hop_ilb is defined
     condition = alltrue([for vpc in var.vpcs :
-      alltrue([
-        for route in vpc.routes : length(route) > 0
-        ? (route.next_hop_gateway != null || route.next_hop_ip != null || route.next_hop_ilb != null)
-        : true
+      vpc.routes != null ? alltrue([
+        for route in vpc.routes : route.next_hop_gateway != null || route.next_hop_ip != null || route.next_hop_ilb != null
       ])
+      : true
     ])
     error_message = "If routes are defined, then one of next_hop_gateway, next_hop_ip or next_hop_ilb must be defined"
   }

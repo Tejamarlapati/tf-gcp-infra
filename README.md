@@ -99,37 +99,22 @@ The following variables are required to create multiple VPC via terraform.
 | vpcs[routes][next_hop_ip]               | string | <-\| one of | The next hop IP of the route.                        |                                           |
 | vpcs[routes][next_hop_ilb]              | string | <-\|        | The next hop ILB of the route.                       |                                           |
 
-### Example VPC Configuration
+### Outputs
 
-Most simplest VPC setup example:
+After deploying the VPCs using Terraform, you can retrieve information about the created VPCs, including their names, self-links, subnets, and routes, using the following outputs:
 
-```hcl
+| Output       | Description                                                                   |
+| ------------ | ----------------------------------------------------------------------------- |
+| vpc_networks | List of VPCs with their names, self-links, and associated subnets and routes. |
 
-project_id = "csye-6225-cloud-computing"
+#### Output Details
 
-region = "us-east1"
+- **vpc_networks**: This output provides a list of VPCs with their respective details, including:
+  - **name**: The name of the VPC.
+  - **self_link**: The self-link URL of the VPC.
+  - **subnets**: A list of subnets within the VPC, including their names, regions, and self-links.
+  - **routes**: A list of routes within the VPC, including their names and self-links.
 
-vpcs = [
-  {
-    name = "dev"
-    subnets = [
-      {
-        name          = "webapp"
-        ip_cidr_range = "10.0.1.0/24"
-      },
-      {
-        name          = "db"
-        ip_cidr_range = "10.0.2.0/24"
-      }
-    ]
-    routes = [
-      {
-        name             = "public-access"
-        dest_range       = "0.0.0.0/0"
-        next_hop_gateway = "default-internet-gateway"
-        tags             = ["public"]
-      }
-    ]
-  }
-]
-```
+## Examples
+
+### [Examples](EXAMPLES.md)
