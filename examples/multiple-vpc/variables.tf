@@ -78,6 +78,6 @@ variable "vpcs" {
       next_hop_ip      = "(Optional) The next hop IP of the route"
       next_hop_ilb     = "(Optional) The next hop ILB of the route"
     }]
-  }
+  }]
   _EOT
 }
