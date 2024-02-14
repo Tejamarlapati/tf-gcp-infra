@@ -4,93 +4,107 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "The default region in which to create the resources"
+  description = "The default region in which to create the resources. Defaults to us-east1."
   type        = string
   default     = "us-east1"
 }
 
-variable "vpcs" {
+variable "vpc_name" {
+  description = "Name of the Virtual Private Cloud (VPC)"
+  type        = string
+}
+
+variable "vpc_description" {
+  description = "Description of the Virtual Private Cloud (VPC). Defaults to '{var.vpc_name} - Virtual Private Cloud'."
+  type        = string
+  default     = null
+}
+
+variable "vpc_routing_mode" {
+  description = "VPC routing mode. Default is REGIONAL. Valid values are REGIONAL or GLOBAL."
+  type        = string
+  default     = "REGIONAL"
+}
+
+variable "vpc_auto_create_subnets" {
+  description = "Whether to create subnets in the VPC. Default is false."
+  type        = bool
+  default     = false
+}
+
+variable "vpc_delete_default_routes_on_create" {
+  description = "Whether to delete the default route created by the VPC. Default is true."
+  type        = bool
+  default     = true
+}
+
+variable "subnets" {
   type = list(object({
-    name                            = string
-    description                     = optional(string)
-    routing_mode                    = optional(string, "REGIONAL")
-    auto_create_subnets             = optional(bool, false)
-    delete_default_routes_on_create = optional(bool, true)
-    subnets = list(object({
-      name                     = string
-      ip_cidr_range            = string
-      description              = optional(string)
-      region                   = optional(string)
-      private_ip_google_access = optional(bool, true)
-    }))
-    routes = optional(list(object({
-      name             = string
-      dest_range       = string
-      next_hop_gateway = optional(string)
-      next_hop_ip      = optional(string)
-      next_hop_ilb     = optional(string)
-      tags             = optional(list(string))
-    })))
+    name                     = string
+    ip_cidr_range            = string
+    description              = optional(string)
+    region                   = optional(string)
+    private_ip_google_access = optional(bool)
   }))
-
-
-  validation {
-    condition     = (length(var.vpcs) > 0)
-    error_message = "At least one VPC must be defined"
-  }
-
-  validation {
-    condition     = alltrue([for vpc in var.vpcs : length(vpc.subnets) > 0])
-    error_message = "At least one subnet must be defined for each VPC"
-  }
-
-  validation {
-    // Condition to check if there are routes then if one of next_hop_gateway, next_hop_ip or next_hop_ilb is defined
-    condition = alltrue([for vpc in var.vpcs :
-      vpc.routes != null ? alltrue([
-        for route in vpc.routes : route.next_hop_gateway != null || route.next_hop_ip != null || route.next_hop_ilb != null
-      ])
-      : true
-    ])
-    error_message = "If routes are defined, then one of next_hop_gateway, next_hop_ip or next_hop_ilb must be defined"
-  }
 
   description = <<-_EOT
   [{
-    name                            = "(Required) The name of the VPC"
-    description                     = "(Optional) The description of the VPC. Defaults to '{vpc.name} Virtual Private Cloud'"
-    routing_mode                    = "(Optional) The network routing mode. Defaults to 'REGIONAL'"
-    auto_create_subnets             = "(Optional) Whether to create subnets automatically. Defaults to 'false'"
-    delete_default_routes_on_create = "(Optional) Whether to delete the default route on create. Defaults to 'true'"
-    subnets                         =  [{
-      name                     = "(Required) The name of the subnet"
-      ip_cidr_range            = "(Required) The IP CIDR range of the subnet"
-      description              = "(Optional) The description of the subnet. Defaults to '{subnet.name} subnet for {vpc.name} VPC'"
-      region                   = "(Optional) The region in which the subnet will be created. Defaults to the default region of provider"
-      private_ip_google_access = "(Optional) Whether to enable private IP Google access. Defaults to 'true'"
-    }]
-    routes = [{
-      name             = "(Required) The name of the route"
-      dest_range       = "(Required) The destination range of the route"
-      tags             = "(Optional) The tags of the route"
-      
-      ** One of the next_hop_gateway, next_hop_ip or next_hop_ilb must be defined
-      next_hop_gateway = "(Optional) The next hop gateway of the route"
-      next_hop_ip      = "(Optional) The next hop IP of the route"
-      next_hop_ilb     = "(Optional) The next hop ILB of the route"
-    }]
-  }
+    name                            = "(Required) The name of the subnet"
+    ip_cidr_range                   = "(Required) The range of internal addresses that are owned by this subnet.
+    description                     = "(Optional) The description of the subnet. Defaults to 'Subnet {subnet.name} under {var.vpc_name} VPC'."
+    region                          = "(Optional) The region in which the subnet is created. Defaults to {var.region}"
+    private_ip_google_access        = "(Optional) Whether VMs can access Google services without external IP addresses. Defaults to true."
+  }]
   _EOT
+
+  validation {
+    condition = (var.subnets == null ? true
+    : alltrue([for subnet in var.subnets : subnet.ip_cidr_range != null && subnet.ip_cidr_range != ""]))
+    error_message = "Subnet IP CIDR ranges must not be empty."
+  }
+
+  validation {
+    condition = (var.subnets == null ? true
+    : alltrue([for subnet in var.subnets : subnet.name != null && subnet.name != ""]))
+    error_message = "Subnet names must not be empty."
+  }
 }
 
-variable "public_route_tags" {
-  type        = list(string)
-  description = "Tag to identify public route. Defaults to ['public']"
-  default     = ["public"]
-}
+variable "routes" {
+  type = list(object({
+    name                   = string
+    dest_range             = string
+    description            = optional(string)
+    tags                   = optional(list(string))
+    next_hop_gateway       = optional(string)
+    next_hop_ip            = optional(string)
+    next_hop_ilb           = optional(string)
+    next_hop_instance      = optional(string)
+    next_hop_instance_zone = optional(string)
+  }))
 
-variable "private_route_tags" {
-  type        = list(string)
-  description = "Tag to identify private route. Defaults to ['private']"
-  default     = ["private"]
+  description = <<-_EOT
+  [{
+    name             = "(Required) The name of the route. Defaults the route name to 'vpc-{vpc.name}-route-{name}'"
+    dest_range       = "(Required) The destination range of outgoing packets that this route applies to"
+    description      = "(Optional) The description of the route. Defaults to 'Route {name} under {var.vpc_name} VPC'"
+    tags             = "(Optional) A list of instance tags to which this route applies"
+
+    ** One of the next_hop_gateway, next_hop_ip, next_hop_ilb, next_hop_instance (and next_hop_instance_zone) must be defined
+      next_hop_gateway       = "(Optional) The next hop gateway of the route"
+      next_hop_ip            = "(Optional) The next hop IP of the route"
+      next_hop_ilb           = "(Optional) The next hop ILB of the route"
+      next_hop_instance      = "(Optional) The next hop instance of the route"
+      next_hop_instance_zone = "(Optional) The next hop instance zone of the route"
+  }]
+  _EOT
+
+  validation {
+    condition = (var.routes != null ?
+      alltrue([for route in var.routes : route.next_hop_gateway != null || route.next_hop_ip != null || route.next_hop_ilb != null || route.next_hop_instance != null])
+    : true)
+    error_message = "If routes are defined, then one of next_hop_gateway, next_hop_ip or next_hop_ilb must be defined"
+  }
+
+  default = []
 }

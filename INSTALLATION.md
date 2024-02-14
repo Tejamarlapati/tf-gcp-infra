@@ -44,4 +44,4 @@ To set up Terraform within your repository, follow these steps:
 
 5. **Destroy Infrastructure**: To destroy the infrastructure created by Terraform, you can run terraform destroy. Make sure to review the plan before proceeding.
 
-        terraform destroy
+        terraform destroy -var-file=dev-vars.tfvars
