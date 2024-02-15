@@ -1,25 +1,24 @@
 # -----------------------------------------------------
 # VPC outputs
 # -----------------------------------------------------
-output "vpc_networks" {
-  description = "List of VPCs with name, self_link and subnets"
-  value = [
-    for vpc_index, vpc in module.vpc : {
-      name      = vpc.network.name
-      self_link = vpc.network.self_link
-      subnets = [
-        for subnet in vpc.subnets : {
-          name      = subnet.name
-          region    = subnet.region
-          self_link = subnet.self_link
-        }
-      ]
-      routes = [
-        for route in vpc.routes : {
-          name      = route.name
-          self_link = route.self_link
-        }
-      ]
-    }
-  ]
+output "vpc" {
+  value       = google_compute_network.vpc
+  description = "The VPC created by this module"
 }
+
+# -----------------------------------------------------
+# Subnets outputs
+# -----------------------------------------------------
+output "subnets" {
+  value       = [for subnet in google_compute_subnetwork.subnets : subnet]
+  description = "List of subnets created for the VPC"
+}
+
+# -----------------------------------------------------
+# Routes outputs
+# -----------------------------------------------------
+output "routes" {
+  value       = [for route in google_compute_route.routes : route]
+  description = "List of routes created for the VPC"
+}
+
