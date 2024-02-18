@@ -15,7 +15,7 @@ Only sending the required parameters and letting the VPC module take care of fil
 ### Input I
 
 ```hcl
-project_id = "csye-6225-cloud-computing"
+project_id = "csye6225-cloud-computing-dev"
 
 region = "us-east1"
 
@@ -53,20 +53,20 @@ vpc_networks = [
     "routes" = [
       {
         "name" = "vpc-dev-route-public-access"
-        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/global/routes/vpc-dev-route-public-access"
+        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/global/routes/vpc-dev-route-public-access"
       },
     ]
-    "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/global/networks/dev"
+    "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/global/networks/dev"
     "subnets" = [
       {
         "name" = "db"
         "region" = "us-east1"
-        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/regions/us-east1/subnetworks/db"
+        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/regions/us-east1/subnetworks/db"
       },
       {
         "name" = "webapp"
         "region" = "us-east1"
-        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/regions/us-east1/subnetworks/webapp"
+        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/regions/us-east1/subnetworks/webapp"
       },
     ]
   },
@@ -90,7 +90,7 @@ Sending optional parameters along with required parameters and letting the VPC m
 ### Input II
 
 ```hcl
-project_id = "csye-6225-cloud-computing"
+project_id = "csye6225-cloud-computing-dev"
 
 region = "us-east1"
 
@@ -150,37 +150,37 @@ vpc_networks = [
     "routes" = [
       {
         "name" = "vpc-dev-us-east1-route-public-access"
-        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/global/routes/vpc-dev-us-east1-route-public-access"
+        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/global/routes/vpc-dev-us-east1-route-public-access"
       },
     ]
-    "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/global/networks/dev-us-east1"
+    "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/global/networks/dev-us-east1"
     "subnets" = [
       {
         "name" = "db"
         "region" = "us-east1"
-        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/regions/us-east1/subnetworks/db"
+        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/regions/us-east1/subnetworks/db"
       },
       {
         "name" = "webapp"
         "region" = "us-east1"
-        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/regions/us-east1/subnetworks/webapp"
+        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/regions/us-east1/subnetworks/webapp"
       },
     ]
   },
   {
     "name" = "dev-us-west1"
     "routes" = []
-    "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/global/networks/dev-us-west1"
+    "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/global/networks/dev-us-west1"
     "subnets" = [
       {
         "name" = "db"
         "region" = "us-west1"
-        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/regions/us-west1/subnetworks/db"
+        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/regions/us-west1/subnetworks/db"
       },
       {
         "name" = "webapp"
         "region" = "us-west1"
-        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye-6225-cloud-computing/regions/us-west1/subnetworks/webapp"
+        "self_link" = "https://www.googleapis.com/compute/v1/projects/csye6225-cloud-computing-dev/regions/us-west1/subnetworks/webapp"
       },
     ]
   },

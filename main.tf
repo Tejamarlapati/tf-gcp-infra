@@ -22,6 +22,32 @@ locals {
       tags                   = coalesce(route.tags, [])
     }
   ]
+
+  firewall_rules_with_defaults = var.firewall_rules == null ? [] : [
+    for rule in var.firewall_rules : {
+      name               = rule.name
+      description        = coalesce(rule.description, "Firewall rule ${rule.name} under ${var.vpc_name} VPC")
+      direction          = rule.direction
+      source_ranges      = coalesce(rule.source_ranges, [])
+      destination_ranges = coalesce(rule.destination_ranges, [])
+
+      source_tags = rule.source_tags
+      target_tags = rule.target_tags
+
+      allowed = rule.allowed == null ? [] : [
+        for a in rule.allowed : {
+          protocol = a.protocol
+          ports    = a.ports
+        }
+      ]
+      denied = rule.denied == null ? [] : [
+        for d in rule.denied : {
+          protocol = d.protocol
+          ports    = d.ports
+        }
+      ]
+    }
+  ]
 }
 
 # -----------------------------------------------------
@@ -66,4 +92,67 @@ resource "google_compute_route" "routes" {
   tags                   = local.routes_with_defaults[count.index].tags
   network                = google_compute_network.vpc.self_link
   depends_on             = [google_compute_network.vpc]
+}
+
+# -----------------------------------------------------
+# Setup firewall rules
+# -----------------------------------------------------
+resource "google_compute_firewall" "firewall_rules" {
+  count       = local.firewall_rules_with_defaults == null ? 0 : length(local.firewall_rules_with_defaults)
+  name        = local.firewall_rules_with_defaults[count.index].name
+  description = local.firewall_rules_with_defaults[count.index].description
+  direction   = local.firewall_rules_with_defaults[count.index].direction
+
+  source_ranges      = local.firewall_rules_with_defaults[count.index].source_ranges
+  destination_ranges = local.firewall_rules_with_defaults[count.index].destination_ranges
+
+  source_tags = local.firewall_rules_with_defaults[count.index].source_tags
+  target_tags = local.firewall_rules_with_defaults[count.index].target_tags
+
+  dynamic "allow" {
+    for_each = local.firewall_rules_with_defaults[count.index].allowed
+    content {
+      protocol = allow.value.protocol
+      ports    = allow.value.ports
+    }
+  }
+
+  dynamic "deny" {
+    for_each = local.firewall_rules_with_defaults[count.index].denied
+    content {
+      protocol = deny.value.protocol
+      ports    = deny.value.ports
+    }
+  }
+
+  network    = google_compute_network.vpc.self_link
+  depends_on = [google_compute_network.vpc]
+}
+
+# -----------------------------------------------------
+# Setup Web Server Compute Instance
+# -----------------------------------------------------
+
+resource "google_compute_instance" "web_server" {
+  count        = var.webapp_compute_instance == null ? 0 : 1
+  name         = var.webapp_compute_instance.name
+  machine_type = var.webapp_compute_instance.machine_type
+  zone         = var.webapp_compute_instance.zone
+  tags         = var.webapp_compute_instance.tags
+  boot_disk {
+    initialize_params {
+      image = var.webapp_compute_instance.image
+      size  = var.webapp_compute_instance.disk_size
+      type  = var.webapp_compute_instance.disk_type
+    }
+  }
+  network_interface {
+    network    = google_compute_network.vpc.self_link
+    subnetwork = google_compute_subnetwork.subnets[index(google_compute_subnetwork.subnets.*.name, var.webapp_compute_instance.subnet_name)].self_link
+
+    // Ephemeral IP
+    access_config {
+    }
+  }
+  depends_on = [google_compute_network.vpc, google_compute_firewall.firewall_rules, google_compute_subnetwork.subnets]
 }

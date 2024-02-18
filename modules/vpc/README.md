@@ -7,7 +7,6 @@ This Terraform module creates a Virtual Private Cloud (VPC) on Google Cloud Plat
     - Creation/updation of subnetworks in the VPC
     - Creation/updation of routes for the VPC
 
-
 ## Inputs
 
 | Name                                   | Description                                               | Type            | Required        |
