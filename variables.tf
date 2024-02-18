@@ -110,3 +110,88 @@ variable "routes" {
 
   default = []
 }
+
+variable "firewall_rules" {
+  type = list(object({
+    name               = string
+    description        = optional(string)
+    direction          = string
+    source_ranges      = optional(list(string))
+    destination_ranges = optional(list(string))
+    source_tags        = optional(list(string))
+    target_tags        = optional(list(string))
+    allowed = optional(list(object({
+      protocol = string
+      ports    = list(string)
+    })))
+    denied = optional(list(object({
+      protocol = string
+      ports    = list(string)
+    })))
+  }))
+
+  description = <<-_EOT
+  [{
+    name               = "(Required) The name of the firewall rule"
+    description        = "(Optional) The description of the firewall rule. Defaults to 'Firewall rule {name} under {var.vpc_name} VPC'"
+    direction          = "(Required) The direction of traffic to which this firewall applies. Valid values are INGRESS or EGRESS"
+    source_ranges      = "(Optional) A list of source IP ranges to which this firewall applies"
+    destination_ranges = "(Optional) A list of destination IP ranges to which this firewall applies"
+    source_tags        = "(Optional) A list of source instance tags to which this firewall applies"
+    target_tags        = "(Optional) A list of target instance tags to which this firewall applies"
+
+    allowed = "(Optional) A list of allowed protocols and ports. Each allowed block supports fields protocol and ports"
+    denied  = "(Optional) A list of denied protocols and ports. Each denied block supports fields protocol and ports"
+  }]
+  _EOT
+
+  default = []
+
+  validation {
+    condition = (alltrue([
+      for rule in var.firewall_rules : (rule.allowed != null) || (rule.denied != null)
+    ]))
+    error_message = "At least 1 allowed or denied rule must be defined"
+  }
+
+  validation {
+    condition = (alltrue([
+      for rule in var.firewall_rules :
+      (rule.allowed != null ? length(rule.allowed) > 0 : true) || (rule.denied != null ? length(rule.denied) > 0 : true)
+    ]))
+    error_message = "At least 1 allowed or denied rule must be defined"
+  }
+}
+
+variable "webapp_compute_instance" {
+  type = object({
+    name         = string
+    machine_type = string
+    zone         = string
+    tags         = list(string)
+    image        = string
+    disk_size    = number
+    disk_type    = string
+    subnet_name  = string
+  })
+
+  description = <<-_EOT
+  {
+    name         = "(Required) The name of the instance"
+    machine_type = "(Required) The machine type of the instance"
+    zone         = "(Required) The zone in which the instance is created"
+    tags         = "(Optional) A list of instance tags"
+    image        = "(Required) The image of the instance"
+    disk_size    = "(Required) The size of the boot disk"
+    disk_type    = "(Required) The type of the boot disk"
+    subnet_name  = "(Optional) The name of the subnet to bind this instance to. If not provided, the instance is created in the default network"
+  }
+  _EOT
+
+  default = null
+
+  validation {
+    condition     = (var.webapp_compute_instance != null ? var.webapp_compute_instance.subnet_name != null : true)
+    error_message = "Subnet name must be provided if webapp_compute_instance is defined"
+  }
+}
