@@ -53,7 +53,6 @@ resource "google_compute_subnetwork" "subnets" {
 # -----------------------------------------------------
 # Create routes for VPC
 # -----------------------------------------------------
-resource "google_compute_route" "routes" {
   count                  = length(local.routes_with_defaults)
   name                   = local.routes_with_defaults[count.index].name
   dest_range             = local.routes_with_defaults[count.index].dest_range
