@@ -47,8 +47,9 @@ output "firewall_rules" {
 # -----------------------------------------------------
 output "web_server" {
   value = [for instance in google_compute_instance.web_server : {
-    name      = instance.name
-    self_link = instance.self_link
+    name          = instance.name
+    self_link     = instance.self_link
+    access_config = flatten([for interfaces in instance.network_interface : interfaces.access_config])
   }]
   description = "The web server compute instance created by this module"
 }
