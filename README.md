@@ -62,6 +62,7 @@ The following variables are required to create a VPC via terraform.
 | firewall_rules[name]                  | string | yes            | The name of the firewall rule.                                        |                                               |
 | firewall_rules[description]           | string |                | The description of the firewall rule.                                 | Firewall rule {name} under {var.vpc_name} VPC |
 | firewall_rules[direction]             | string | yes            | The direction of traffic to which this firewall applies.              |                                               |
+| firewall_rules[priority]              | number |                | The priority of firewall rule.                                        | 1000                                          |
 | firewall_rules[source_ranges]         | list   |                | A list of source IP ranges to which this firewall applies.            | null                                          |
 | firewall_rules[destination_ranges]    | list   |                | A list of destination IP ranges to which this firewall applies.       | null                                          |
 | firewall_rules[source_tags]           | list   |                | A list of source instance tags to which this firewall applies.        | null                                          |
