@@ -116,6 +116,7 @@ variable "firewall_rules" {
     name               = string
     description        = optional(string)
     direction          = string
+    priority           = optional(number)
     source_ranges      = optional(list(string))
     destination_ranges = optional(list(string))
     source_tags        = optional(list(string))
