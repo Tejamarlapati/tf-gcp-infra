@@ -123,11 +123,11 @@ variable "firewall_rules" {
     target_tags        = optional(list(string))
     allowed = optional(list(object({
       protocol = string
-      ports    = list(string)
+      ports    = optional(list(string))
     })))
     denied = optional(list(object({
       protocol = string
-      ports    = list(string)
+      ports    = optional(list(string))
     })))
   }))
 
