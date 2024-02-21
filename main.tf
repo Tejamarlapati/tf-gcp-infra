@@ -28,6 +28,7 @@ locals {
       name               = rule.name
       description        = coalesce(rule.description, "Firewall rule ${rule.name} under ${var.vpc_name} VPC")
       direction          = rule.direction
+      priority           = coalesce(rule.priority, 1000)
       source_ranges      = coalesce(rule.source_ranges, [])
       destination_ranges = coalesce(rule.destination_ranges, [])
 
@@ -98,11 +99,11 @@ resource "google_compute_route" "routes" {
 # Setup firewall rules
 # -----------------------------------------------------
 resource "google_compute_firewall" "firewall_rules" {
-  count       = local.firewall_rules_with_defaults == null ? 0 : length(local.firewall_rules_with_defaults)
-  name        = local.firewall_rules_with_defaults[count.index].name
-  description = local.firewall_rules_with_defaults[count.index].description
-  direction   = local.firewall_rules_with_defaults[count.index].direction
-
+  count              = local.firewall_rules_with_defaults == null ? 0 : length(local.firewall_rules_with_defaults)
+  name               = local.firewall_rules_with_defaults[count.index].name
+  description        = local.firewall_rules_with_defaults[count.index].description
+  direction          = local.firewall_rules_with_defaults[count.index].direction
+  priority           = local.firewall_rules_with_defaults[count.index].priority
   source_ranges      = local.firewall_rules_with_defaults[count.index].source_ranges
   destination_ranges = local.firewall_rules_with_defaults[count.index].destination_ranges
 
