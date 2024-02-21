@@ -136,6 +136,7 @@ variable "firewall_rules" {
     name               = "(Required) The name of the firewall rule"
     description        = "(Optional) The description of the firewall rule. Defaults to 'Firewall rule {name} under {var.vpc_name} VPC'"
     direction          = "(Required) The direction of traffic to which this firewall applies. Valid values are INGRESS or EGRESS"
+    priority           = "(Optional) The priority of the firewall rule. Defaults to 1000"
     source_ranges      = "(Optional) A list of source IP ranges to which this firewall applies"
     destination_ranges = "(Optional) A list of destination IP ranges to which this firewall applies"
     source_tags        = "(Optional) A list of source instance tags to which this firewall applies"
