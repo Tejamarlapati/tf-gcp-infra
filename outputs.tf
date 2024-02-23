@@ -53,3 +53,19 @@ output "web_server" {
   }]
   description = "The web server compute instance created by this module"
 }
+
+# -----------------------------------------------------
+# Database Cloud SQL Instance outputs
+# -----------------------------------------------------
+output "database_instance" {
+  value = {
+    name      = google_sql_database_instance.database_instance.0.name
+    region    = google_sql_database_instance.database_instance.0.region
+    self_link = google_sql_database_instance.database_instance.0.self_link
+    database = {
+      name      = google_sql_database.database.0.name
+      self_link = google_sql_database.database.0.self_link
+    }
+  }
+  description = "The database instance created by this module"
+}

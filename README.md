@@ -15,10 +15,11 @@ Please follow the installation instructions required for setting up the project 
 This project relies on the following services to run for a project
 
 - `compute.googleapis.com`
+- `servicenetworking.googleapis.com`
 
 These can be enabled from cli after setting up the default project using the following commands:
 
-    gcloud services enable compute.googleapis.com
+    gcloud services enable {service-name}.googleapis.com
 
 For additional info regarding enabling cli via services, refer [here](https://cloud.google.com/sdk/gcloud/reference/services/enable).
 

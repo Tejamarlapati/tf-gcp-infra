@@ -3,6 +3,7 @@ locals {
     for subnet in var.subnets : {
       name                     = subnet.name
       ip_cidr_range            = subnet.ip_cidr_range
+      purpose                  = subnet.purpose
       description              = coalesce(subnet.description, "Subnet ${subnet.name} under ${var.vpc_name} VPC")
       region                   = coalesce(subnet.region, var.region)
       private_ip_google_access = coalesce(subnet.private_ip_google_access, true)
@@ -49,6 +50,34 @@ locals {
       ]
     }
   ]
+
+  database_sql_instance = var.database_sql_instance == null ? null : {
+    name          = var.database_sql_instance.name
+    database_name = var.database_sql_instance.database_name
+    subnet_name   = var.database_sql_instance.subnet_name
+    region        = var.database_sql_instance.region
+    tier          = var.database_sql_instance.tier
+
+    database_version    = coalesce(var.database_sql_instance.database_version, "POSTGRES_15")
+    disk_size           = coalesce(var.database_sql_instance.disk_size, 100)
+    disk_type           = coalesce(var.database_sql_instance.disk_type, "pd-ssd")
+    availability_type   = coalesce(var.database_sql_instance.availability_type, "REGIONAL")
+    deletion_protection = coalesce(var.database_sql_instance.deletion_protection, true)
+
+    ip_configuration = merge({
+      ipv4_enabled                                  = false
+      require_ssl                                   = true
+      enable_private_path_for_google_cloud_services = true
+      subnet_name                                   = var.database_sql_instance.subnet_name
+    }, var.database_sql_instance.ip_configuration)
+
+    private_access_config = merge({
+      name              = "vpc-${var.vpc_name}-database-private-access"
+      address_type      = "INTERNAL"
+      purpose           = "PRIVATE_SERVICE_CONNECT"
+      forwarding_target = "all-apis"
+    }, var.database_sql_instance.private_access_config)
+  }
 }
 
 # -----------------------------------------------------
@@ -56,6 +85,7 @@ locals {
 # -----------------------------------------------------
 
 resource "google_compute_network" "vpc" {
+  provider                        = google
   name                            = var.vpc_name
   description                     = coalesce(var.vpc_description, "${var.vpc_name} - Virtual Private Cloud")
   routing_mode                    = var.vpc_routing_mode
@@ -67,9 +97,11 @@ resource "google_compute_network" "vpc" {
 # Create custom subnets (if auto_create_subnets is false)
 # -----------------------------------------------------
 resource "google_compute_subnetwork" "subnets" {
+  provider                 = google
   count                    = var.vpc_auto_create_subnets == false ? length(local.subnets_with_defaults) : 0
   name                     = local.subnets_with_defaults[count.index].name
   description              = local.subnets_with_defaults[count.index].description
+  purpose                  = local.subnets_with_defaults[count.index].purpose
   region                   = local.subnets_with_defaults[count.index].region
   ip_cidr_range            = local.subnets_with_defaults[count.index].ip_cidr_range
   private_ip_google_access = local.subnets_with_defaults[count.index].private_ip_google_access
@@ -81,6 +113,7 @@ resource "google_compute_subnetwork" "subnets" {
 # Create routes for VPC
 # -----------------------------------------------------
 resource "google_compute_route" "routes" {
+  provider               = google
   count                  = length(local.routes_with_defaults)
   name                   = local.routes_with_defaults[count.index].name
   dest_range             = local.routes_with_defaults[count.index].dest_range
@@ -99,6 +132,7 @@ resource "google_compute_route" "routes" {
 # Setup firewall rules
 # -----------------------------------------------------
 resource "google_compute_firewall" "firewall_rules" {
+  provider           = google
   count              = local.firewall_rules_with_defaults == null ? 0 : length(local.firewall_rules_with_defaults)
   name               = local.firewall_rules_with_defaults[count.index].name
   description        = local.firewall_rules_with_defaults[count.index].description
@@ -131,10 +165,105 @@ resource "google_compute_firewall" "firewall_rules" {
 }
 
 # -----------------------------------------------------
+# Setup Internal IP for Database Server
+# -----------------------------------------------------
+resource "google_compute_global_address" "database_private_access_ip" {
+  provider      = google
+  count         = local.database_sql_instance == null ? 0 : 1
+  name          = local.database_sql_instance.private_access_config.name
+  address_type  = local.database_sql_instance.private_access_config.address_type
+  purpose       = local.database_sql_instance.private_access_config.purpose
+  address       = local.database_sql_instance.private_access_config.address
+  prefix_length = local.database_sql_instance.private_access_config.prefix_length
+  network       = google_compute_network.vpc.self_link
+  depends_on    = [google_compute_network.vpc]
+}
+
+resource "google_service_networking_connection" "database_private_access_networking_connection" {
+  provider                = google
+  network                 = google_compute_network.vpc.self_link
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.database_private_access_ip.0.name]
+  deletion_policy         = "ABANDON"
+  depends_on              = [google_compute_network.vpc, google_compute_global_address.database_private_access_ip]
+}
+
+# -----------------------------------------------------
+# Setup Database Cloud SQL Instance
+# -----------------------------------------------------
+resource "random_id" "database_instance_id" {
+  count       = local.database_sql_instance == null ? 0 : 1
+  byte_length = 4
+}
+
+resource "google_sql_database_instance" "database_instance" {
+  provider            = google
+  count               = local.database_sql_instance == null ? 0 : 1
+  name                = "${local.database_sql_instance.name}-${random_id.database_instance_id.0.hex}"
+  region              = local.database_sql_instance.region
+  database_version    = local.database_sql_instance.database_version
+  deletion_protection = local.database_sql_instance.deletion_protection
+  settings {
+    tier                        = local.database_sql_instance.tier
+    availability_type           = local.database_sql_instance.availability_type
+    disk_size                   = local.database_sql_instance.disk_size
+    disk_type                   = local.database_sql_instance.disk_type
+    disk_autoresize             = false
+    deletion_protection_enabled = local.database_sql_instance.deletion_protection
+    ip_configuration {
+      ipv4_enabled                                  = local.database_sql_instance.ip_configuration.ipv4_enabled
+      private_network                               = google_service_networking_connection.database_private_access_networking_connection.network # google_compute_network.vpc.self_link # google_compute_global_address.database_private_access_ip.0.network # google_compute_network.vpc.self_link #google_compute_subnetwork.subnets[index(google_compute_subnetwork.subnets.*.name, local.database_sql_instance.ip_configuration.subnet_name)].self_link
+      require_ssl                                   = local.database_sql_instance.ip_configuration.require_ssl
+      enable_private_path_for_google_cloud_services = local.database_sql_instance.ip_configuration.enable_private_path_for_google_cloud_services
+    }
+  }
+  depends_on = [google_compute_network.vpc, google_compute_subnetwork.subnets]
+}
+
+# -----------------------------------------------------
+# Setup database, username and password for the database
+# -----------------------------------------------------
+
+# generate random username & password
+resource "random_string" "database_username" {
+  length  = 8
+  special = false
+  upper   = false
+  numeric = false
+  lower   = true
+}
+resource "random_password" "database_password" {
+  length           = 16
+  special          = true
+  upper            = true
+  numeric          = true
+  lower            = true
+  override_special = "_$*@~^{}"
+}
+
+resource "google_sql_database" "database" {
+  provider   = google
+  count      = local.database_sql_instance == null ? 0 : 1
+  name       = local.database_sql_instance.database_name
+  instance   = google_sql_database_instance.database_instance.0.name
+  depends_on = [google_sql_database_instance.database_instance]
+}
+
+resource "google_sql_user" "database_user" {
+  provider   = google
+  count      = local.database_sql_instance == null ? 0 : 1
+  instance   = google_sql_database_instance.database_instance.0.name
+  name       = random_string.database_username.result
+  password   = random_password.database_password.result
+  depends_on = [google_sql_database_instance.database_instance]
+}
+
+# -----------------------------------------------------
 # Setup Web Server Compute Instance
 # -----------------------------------------------------
 
 resource "google_compute_instance" "web_server" {
+  provider     = google
   count        = var.webapp_compute_instance == null ? 0 : 1
   name         = var.webapp_compute_instance.name
   machine_type = var.webapp_compute_instance.machine_type
@@ -155,5 +284,18 @@ resource "google_compute_instance" "web_server" {
     access_config {
     }
   }
-  depends_on = [google_compute_network.vpc, google_compute_firewall.firewall_rules, google_compute_subnetwork.subnets]
+
+  metadata_startup_script = templatefile("./startup.sh", {
+    name     = "${google_sql_database.database.0.name}"
+    host     = "${google_sql_database_instance.database_instance.0.private_ip_address}"
+    username = "${random_string.database_username.result}"
+    password = "${random_password.database_password.result}"
+  })
+
+  depends_on = [
+    google_compute_network.vpc,
+    google_compute_firewall.firewall_rules,
+    google_compute_subnetwork.subnets,
+    google_sql_database_instance.database_instance
+  ]
 }
