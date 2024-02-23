@@ -42,6 +42,7 @@ variable "subnets" {
   type = list(object({
     name                     = string
     ip_cidr_range            = string
+    purpose                  = optional(string)
     description              = optional(string)
     region                   = optional(string)
     private_ip_google_access = optional(bool)
@@ -196,4 +197,38 @@ variable "webapp_compute_instance" {
     condition     = (var.webapp_compute_instance != null ? var.webapp_compute_instance.subnet_name != null : true)
     error_message = "Subnet name must be provided if webapp_compute_instance is defined"
   }
+}
+
+variable "database_sql_instance" {
+  type = object({
+    name          = string
+    database_name = string
+    subnet_name   = string
+    region        = string
+    tier          = string
+
+    database_version    = optional(string, "POSTGRES_15")
+    disk_type           = optional(string, "pd-ssd")
+    disk_size           = optional(number, 100)
+    availability_type   = optional(string, "REGIONAL")
+    deletion_protection = optional(bool, true)
+
+    ip_configuration = object({
+      ipv4_enabled                                  = optional(bool, false)
+      subnet_name                                   = optional(string)
+      require_ssl                                   = optional(bool, true)
+      enable_private_path_for_google_cloud_services = optional(bool, true)
+    })
+
+    private_access_config = object({
+      name              = optional(string)
+      purpose           = string
+      address_type      = string
+      address           = optional(string)
+      prefix_length     = optional(number)
+      forwarding_target = optional(string)
+    })
+  })
+
+  default = null
 }
