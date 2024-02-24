@@ -58,7 +58,7 @@ output "web_server" {
 # Database Cloud SQL Instance outputs
 # -----------------------------------------------------
 output "database_instance" {
-  value = {
+  value = length(google_sql_database_instance.database_instance) == 0 ? null : {
     name      = google_sql_database_instance.database_instance.0.name
     region    = google_sql_database_instance.database_instance.0.region
     self_link = google_sql_database_instance.database_instance.0.self_link
