@@ -215,6 +215,7 @@ variable "database_sql_instance" {
     ip_configuration = object({
       ipv4_enabled                                  = optional(bool, false)
       require_ssl                                   = optional(bool, true)
+      ssl_mode                                      = optional(string)
       enable_private_path_for_google_cloud_services = optional(bool, true)
     })
 
