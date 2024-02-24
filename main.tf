@@ -212,6 +212,7 @@ resource "google_sql_database_instance" "database_instance" {
       private_network                               = google_service_networking_connection.database_private_access_networking_connection.network
       ipv4_enabled                                  = local.database_sql_instance.ip_configuration.ipv4_enabled
       require_ssl                                   = local.database_sql_instance.ip_configuration.require_ssl
+      ssl_mode                                      = local.database_sql_instance.ip_configuration.ssl_mode
       enable_private_path_for_google_cloud_services = local.database_sql_instance.ip_configuration.enable_private_path_for_google_cloud_services
     }
   }
