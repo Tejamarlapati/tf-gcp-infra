@@ -90,13 +90,14 @@ The following variables are required to create a VPC via terraform.
 
 After deploying the VPCs using Terraform, you can retrieve information about the created VPCs, including their names, self-links, subnets, and routes, using the following outputs:
 
-| Output         | Description                                             |
-| -------------- | ------------------------------------------------------- |
-| vpc            | The VPC created by this module.                         |
-| subnets        | List of subnets created for the VPC.                    |
-| routes         | List of routes created for the VPC.                     |
-| firewall_rules | List of firewall rules created for the VPC.             |
-| web_server     | The web server compute instance created by this module. |
+| Output            | Description                                             |
+| ----------------- | ------------------------------------------------------- |
+| vpc               | The VPC created by this module.                         |
+| subnets           | List of subnets created for the VPC.                    |
+| routes            | List of routes created for the VPC.                     |
+| firewall_rules    | List of firewall rules created for the VPC.             |
+| web_server        | The web server compute instance created by this module. |
+| database_instance | The SQL Database instance created by this module.       |
 
 ## Examples
 
