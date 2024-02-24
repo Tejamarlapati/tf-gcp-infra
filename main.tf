@@ -57,11 +57,11 @@ locals {
     region        = var.database_sql_instance.region
     tier          = var.database_sql_instance.tier
 
-    database_version    = coalesce(var.database_sql_instance.database_version, "POSTGRES_15")
-    disk_size           = coalesce(var.database_sql_instance.disk_size, 100)
-    disk_type           = coalesce(var.database_sql_instance.disk_type, "pd-ssd")
-    availability_type   = coalesce(var.database_sql_instance.availability_type, "REGIONAL")
-    deletion_protection = coalesce(var.database_sql_instance.deletion_protection, true)
+    database_version    = var.database_sql_instance.database_version
+    disk_size           = var.database_sql_instance.disk_size
+    disk_type           = var.database_sql_instance.disk_type
+    availability_type   = var.database_sql_instance.availability_type
+    deletion_protection = var.database_sql_instance.deletion_protection
 
     ip_configuration = merge({
       ipv4_enabled                                  = false
@@ -70,10 +70,7 @@ locals {
     }, var.database_sql_instance.ip_configuration)
 
     private_access_config = merge({
-      name              = "vpc-${var.vpc_name}-database-private-access"
-      address_type      = "INTERNAL"
-      purpose           = "PRIVATE_SERVICE_CONNECT"
-      forwarding_target = "all-apis"
+      name = "vpc-${var.vpc_name}-database-private-access"
     }, var.database_sql_instance.private_access_config)
   }
 }
@@ -179,6 +176,7 @@ resource "google_compute_global_address" "database_private_access_ip" {
 
 resource "google_service_networking_connection" "database_private_access_networking_connection" {
   provider                = google
+  count                   = local.database_sql_instance == null ? 0 : 1
   network                 = google_compute_network.vpc.self_link
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.database_private_access_ip.0.name]
@@ -209,7 +207,7 @@ resource "google_sql_database_instance" "database_instance" {
     disk_autoresize             = false
     deletion_protection_enabled = local.database_sql_instance.deletion_protection
     ip_configuration {
-      private_network                               = google_service_networking_connection.database_private_access_networking_connection.network
+      private_network                               = google_service_networking_connection.database_private_access_networking_connection.0.network
       ipv4_enabled                                  = local.database_sql_instance.ip_configuration.ipv4_enabled
       require_ssl                                   = local.database_sql_instance.ip_configuration.require_ssl
       ssl_mode                                      = local.database_sql_instance.ip_configuration.ssl_mode
@@ -246,7 +244,7 @@ resource "google_sql_database" "database" {
   count      = local.database_sql_instance == null ? 0 : 1
   name       = local.database_sql_instance.database_name
   instance   = google_sql_database_instance.database_instance.0.name
-  depends_on = [google_sql_database_instance.database_instance]
+  depends_on = [google_sql_database_instance.database_instance, google_sql_user.database_user]
 }
 
 resource "google_sql_user" "database_user" {
@@ -286,8 +284,8 @@ resource "google_compute_instance" "web_server" {
   }
 
   metadata_startup_script = templatefile("./startup.sh", {
-    name     = "${google_sql_database.database.0.name}"
-    host     = "${google_sql_database_instance.database_instance.0.private_ip_address}"
+    name     = length(google_sql_database.database) > 0 ? "${google_sql_database.database.0.name}" : ""
+    host     = length(google_sql_database_instance.database_instance) > 0 ? "${google_sql_database_instance.database_instance.0.private_ip_address}" : ""
     username = "${random_string.database_username.result}"
     password = urlencode("${random_password.database_password.result}")
   })
