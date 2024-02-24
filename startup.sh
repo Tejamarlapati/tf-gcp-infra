@@ -9,6 +9,7 @@ fi
 # Write the environment variables to the .env file
 {
     echo "PORT=80"
+    echo "SSL=true"
     echo "DB_NAME=${name}"
     echo "DB_USER=${username}"
     echo "DB_PASSWORD=${password}"
