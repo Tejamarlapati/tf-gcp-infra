@@ -203,7 +203,6 @@ variable "database_sql_instance" {
   type = object({
     name          = string
     database_name = string
-    subnet_name   = string
     region        = string
     tier          = string
 
@@ -215,7 +214,6 @@ variable "database_sql_instance" {
 
     ip_configuration = object({
       ipv4_enabled                                  = optional(bool, false)
-      subnet_name                                   = optional(string)
       require_ssl                                   = optional(bool, true)
       enable_private_path_for_google_cloud_services = optional(bool, true)
     })
@@ -225,7 +223,7 @@ variable "database_sql_instance" {
       purpose           = string
       address_type      = string
       address           = optional(string)
-      prefix_length     = optional(number)
+      prefix_length     = number
       forwarding_target = optional(string)
     })
   })

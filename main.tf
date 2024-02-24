@@ -54,7 +54,6 @@ locals {
   database_sql_instance = var.database_sql_instance == null ? null : {
     name          = var.database_sql_instance.name
     database_name = var.database_sql_instance.database_name
-    subnet_name   = var.database_sql_instance.subnet_name
     region        = var.database_sql_instance.region
     tier          = var.database_sql_instance.tier
 
@@ -68,7 +67,6 @@ locals {
       ipv4_enabled                                  = false
       require_ssl                                   = true
       enable_private_path_for_google_cloud_services = true
-      subnet_name                                   = var.database_sql_instance.subnet_name
     }, var.database_sql_instance.ip_configuration)
 
     private_access_config = merge({
@@ -211,8 +209,8 @@ resource "google_sql_database_instance" "database_instance" {
     disk_autoresize             = false
     deletion_protection_enabled = local.database_sql_instance.deletion_protection
     ip_configuration {
+      private_network                               = google_service_networking_connection.database_private_access_networking_connection.network
       ipv4_enabled                                  = local.database_sql_instance.ip_configuration.ipv4_enabled
-      private_network                               = google_service_networking_connection.database_private_access_networking_connection.network # google_compute_network.vpc.self_link # google_compute_global_address.database_private_access_ip.0.network # google_compute_network.vpc.self_link #google_compute_subnetwork.subnets[index(google_compute_subnetwork.subnets.*.name, local.database_sql_instance.ip_configuration.subnet_name)].self_link
       require_ssl                                   = local.database_sql_instance.ip_configuration.require_ssl
       enable_private_path_for_google_cloud_services = local.database_sql_instance.ip_configuration.enable_private_path_for_google_cloud_services
     }
@@ -232,13 +230,14 @@ resource "random_string" "database_username" {
   numeric = false
   lower   = true
 }
+
 resource "random_password" "database_password" {
   length           = 16
   special          = true
   upper            = true
   numeric          = true
   lower            = true
-  override_special = "_$*@~^{}"
+  override_special = "_$*@~^{}|"
 }
 
 resource "google_sql_database" "database" {
@@ -289,7 +288,7 @@ resource "google_compute_instance" "web_server" {
     name     = "${google_sql_database.database.0.name}"
     host     = "${google_sql_database_instance.database_instance.0.private_ip_address}"
     username = "${random_string.database_username.result}"
-    password = "${random_password.database_password.result}"
+    password = urlencode("${random_password.database_password.result}")
   })
 
   depends_on = [
