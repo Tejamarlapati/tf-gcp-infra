@@ -88,6 +88,7 @@ The following variables are required to create a VPC via terraform.
 | database_instance[region]                                | string | yes            | The region in which the instance is created.                          |                                               |
 | database_instance[tier]                                  | string | yes            | The tier of the instance.                                             |                                               |
 | database_instance[database_name]                         | string | yes            | The name of the database.                                             |                                               |
+| database_instance[database_username]                     | string | yes            | The name of user in the database.                                     |                                               |
 | database_instance[database_version]                      | string |                | The database version of the instance.                                 | POSTGRES_15                                   |
 | database_instance[disk_size]                             | number |                | The size of the disk.                                                 | 100                                           |
 | database_instance[disk_type]                             | string |                | The type of the disk.                                                 | pd-ssd                                        |
