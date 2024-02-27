@@ -183,7 +183,7 @@ web_server     = [
 4. Creates a firewall rule `allow-webapp-subnet-http` to allow `TCP` protocol on port `80` to `webapp` subnet
 5. Creates a cloud sql instance `db-instance-{random_id}` with `db-g1-small` tier and `POSTGRES_15` database version
    1. Hosts the SQL instance with private IP and creates a connection to VPC using **VPC peering**
-   2. Sets up a new database `csye6225`
+   2. Sets up a new database `webapp`
    3. Creates random user and password for the database
 6. Creates a webapp compute instance `webapp-server` using `webapp` subnet as well as a public ip
    1. Executes a startup script to create .env file to connect to the Cloud SQL database
@@ -255,8 +255,8 @@ database_sql_instance = {
   disk_size           = 100
   database_version    = "POSTGRES_15"
 
-  database_name = "csye6225"
-
+  database_name       = "webapp"
+  database_username   = "webapp"
   ip_configuration = {
     ipv4_enabled                                  = false
     require_ssl                                   = false
@@ -279,7 +279,7 @@ database_sql_instance = {
 ```hcl
 database_instance = {
     database  = {
-        name      = "csye6225"
+        name      = "webapp"
         self_link = (known after apply)
       }
     name      = (known after apply)

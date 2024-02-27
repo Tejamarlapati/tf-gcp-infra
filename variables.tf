@@ -139,7 +139,7 @@ variable "firewall_rules" {
     direction          = "(Required) The direction of traffic to which this firewall applies. Valid values are INGRESS or EGRESS"
     priority           = "(Optional) The priority of the firewall rule. Defaults to 1000"
     source_ranges      = "(Optional) A list of source IP ranges to which this firewall applies"
-    destination_ranges = "(Optional) A list of destination IP ranges to which this firewall applies"
+    destination_ranges = "(Optional) A list of destination IP ranges to which this firewall applies. If any value is set to "DATABASE_PRIVATE_IP", the firewall rule applies to the private IP CIDR of the database instance."
     source_tags        = "(Optional) A list of source instance tags to which this firewall applies"
     target_tags        = "(Optional) A list of target instance tags to which this firewall applies"
 
@@ -205,6 +205,7 @@ variable "database_sql_instance" {
     region              = string
     tier                = string
     database_name       = string
+    database_username   = string
     database_version    = optional(string, "POSTGRES_15")
     disk_type           = optional(string, "pd-ssd")
     disk_size           = optional(number, 100)
@@ -233,6 +234,7 @@ variable "database_sql_instance" {
     region              = "(Required) The region in which the instance is created"
     tier                = "(Required) The tier of the instance"
     database_name       = "(Required) The name of the database"
+    database_username   = "(Required) The username of the database"
     database_version    = "(Optional) The version of the database. Defaults to POSTGRES_15"
     disk_type           = "(Optional) The type of the disk. Defaults to pd-ssd"
     disk_size           = "(Optional) The size of the disk. Defaults to 100"

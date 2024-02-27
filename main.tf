@@ -52,10 +52,11 @@ locals {
   ]
 
   database_sql_instance = var.database_sql_instance == null ? null : {
-    name          = var.database_sql_instance.name
-    database_name = var.database_sql_instance.database_name
-    region        = var.database_sql_instance.region
-    tier          = var.database_sql_instance.tier
+    name              = var.database_sql_instance.name
+    region            = var.database_sql_instance.region
+    tier              = var.database_sql_instance.tier
+    database_name     = var.database_sql_instance.database_name
+    database_username = var.database_sql_instance.database_username
 
     database_version    = var.database_sql_instance.database_version
     disk_size           = var.database_sql_instance.disk_size
@@ -127,14 +128,21 @@ resource "google_compute_route" "routes" {
 # Setup firewall rules
 # -----------------------------------------------------
 resource "google_compute_firewall" "firewall_rules" {
-  provider           = google
-  count              = local.firewall_rules_with_defaults == null ? 0 : length(local.firewall_rules_with_defaults)
-  name               = local.firewall_rules_with_defaults[count.index].name
-  description        = local.firewall_rules_with_defaults[count.index].description
-  direction          = local.firewall_rules_with_defaults[count.index].direction
-  priority           = local.firewall_rules_with_defaults[count.index].priority
-  source_ranges      = local.firewall_rules_with_defaults[count.index].source_ranges
-  destination_ranges = local.firewall_rules_with_defaults[count.index].destination_ranges
+  provider      = google
+  count         = local.firewall_rules_with_defaults == null ? 0 : length(local.firewall_rules_with_defaults)
+  name          = local.firewall_rules_with_defaults[count.index].name
+  description   = local.firewall_rules_with_defaults[count.index].description
+  direction     = local.firewall_rules_with_defaults[count.index].direction
+  priority      = local.firewall_rules_with_defaults[count.index].priority
+  source_ranges = local.firewall_rules_with_defaults[count.index].source_ranges
+  destination_ranges = compact([
+    for each_dest_range in local.firewall_rules_with_defaults[count.index].destination_ranges :
+    replace(each_dest_range, "DATABASE_PRIVATE_IP",
+      local.database_sql_instance == null
+      ? ""
+      : "${google_compute_global_address.database_private_access_ip.0.address}/${google_compute_global_address.database_private_access_ip.0.prefix_length}"
+    )
+  ])
 
   source_tags = local.firewall_rules_with_defaults[count.index].source_tags
   target_tags = local.firewall_rules_with_defaults[count.index].target_tags
@@ -221,15 +229,7 @@ resource "google_sql_database_instance" "database_instance" {
 # Setup database, username and password for the database
 # -----------------------------------------------------
 
-# generate random username & password
-resource "random_string" "database_username" {
-  length  = 8
-  special = false
-  upper   = false
-  numeric = false
-  lower   = true
-}
-
+# generate random password
 resource "random_password" "database_password" {
   length           = 16
   special          = true
@@ -251,7 +251,7 @@ resource "google_sql_user" "database_user" {
   provider   = google
   count      = local.database_sql_instance == null ? 0 : 1
   instance   = google_sql_database_instance.database_instance.0.name
-  name       = random_string.database_username.result
+  name       = local.database_sql_instance.database_username
   password   = random_password.database_password.result
   depends_on = [google_sql_database_instance.database_instance]
 }
@@ -286,7 +286,7 @@ resource "google_compute_instance" "web_server" {
   metadata_startup_script = templatefile("./startup.sh", {
     name     = length(google_sql_database.database) > 0 ? "${google_sql_database.database.0.name}" : ""
     host     = length(google_sql_database_instance.database_instance) > 0 ? "${google_sql_database_instance.database_instance.0.private_ip_address}" : ""
-    username = "${random_string.database_username.result}"
+    username = local.database_sql_instance.database_username
     password = urlencode("${random_password.database_password.result}")
   })
 
