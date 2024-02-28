@@ -15,6 +15,7 @@ fi
     echo "DB_PASSWORD=${password}"
     echo "DB_HOST=${host}"
     echo "DB_PORT=5432"
+    echo "DB_TIMEOUT=10000"
 } > /opt/webapp/dist/.env
 
 # Change the ownership of the /opt/webapp/dist/.env file to the csye6225 user
