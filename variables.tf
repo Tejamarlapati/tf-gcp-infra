@@ -248,3 +248,14 @@ variable "database_sql_instance" {
 
   default = null
 }
+
+variable "service_account_id" {
+  description = "The ID of the service account to use for the resources"
+  type        = string
+}
+
+variable "service_account_vm_scopes" {
+  description = "The list of scopes to grant to the service account. Defaults to logging.write and monitoring.write"
+  type        = list(string)
+  default     = ["https://www.googleapis.com/auth/logging.write", "https://www.googleapis.com/auth/monitoring.write"]
+}

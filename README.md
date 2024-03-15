@@ -16,6 +16,7 @@ This project relies on the following services to run for a project
 
 - `compute.googleapis.com`
 - `servicenetworking.googleapis.com`
+- `dns.googleapis.com`
 
 These can be enabled from cli after setting up the default project using the following commands:
 
