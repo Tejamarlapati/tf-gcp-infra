@@ -259,3 +259,21 @@ variable "service_account_vm_scopes" {
   type        = list(string)
   default     = ["https://www.googleapis.com/auth/logging.write", "https://www.googleapis.com/auth/monitoring.write"]
 }
+
+variable "webapp_dns_record_set" {
+  type = object({
+    name         = string,
+    type         = string,
+    ttl          = number,
+    managed_zone = string
+  })
+
+  description = <<-_EOT
+  {
+    name      = "(Required) The name of the DNS record set"
+    type      = "(Required) The type of the DNS record set"
+    ttl       = "(Required) The TTL of the DNS record set"
+    managed_zone = "(Required) The name of the DNS zone"
+  }
+  _EOT
+}

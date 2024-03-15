@@ -327,3 +327,16 @@ resource "google_compute_instance" "web_server" {
     google_project_iam_binding.logging_admin
   ]
 }
+
+# -----------------------------------------------------
+# Setup DNS for the Web Server
+# -----------------------------------------------------
+resource "google_dns_record_set" "webapp_dns_record" {
+  count        = var.webapp_dns_record_set == null ? 0 : 1
+  name         = var.webapp_dns_record_set.name
+  type         = var.webapp_dns_record_set.type
+  ttl          = var.webapp_dns_record_set.ttl
+  managed_zone = var.webapp_dns_record_set.managed_zone
+  rrdatas      = [google_compute_instance.web_server[count.index].network_interface[count.index].access_config[count.index].nat_ip]
+  depends_on   = [google_compute_instance.web_server]
+}
