@@ -257,6 +257,28 @@ resource "google_sql_user" "database_user" {
 }
 
 # -----------------------------------------------------
+# Creating service account for Ops Agent with IAM bindings
+# -----------------------------------------------------
+
+resource "google_service_account" "service_account" {
+  account_id   = var.service_account_id
+  display_name = "${var.service_account_id} Service Account"
+}
+
+
+resource "google_project_iam_binding" "metric_writer" {
+  project = var.project_id
+  role    = "roles/monitoring.metricWriter"
+  members = [google_service_account.service_account.member]
+}
+
+resource "google_project_iam_binding" "logging_admin" {
+  project = var.project_id
+  role    = "roles/logging.admin"
+  members = [google_service_account.service_account.member]
+}
+
+# -----------------------------------------------------
 # Setup Web Server Compute Instance
 # -----------------------------------------------------
 
@@ -290,10 +312,18 @@ resource "google_compute_instance" "web_server" {
     password = urlencode("${random_password.database_password.result}")
   })
 
+  service_account {
+    email  = google_service_account.service_account.email
+    scopes = var.service_account_vm_scopes
+  }
+
   depends_on = [
     google_compute_network.vpc,
     google_compute_firewall.firewall_rules,
     google_compute_subnetwork.subnets,
-    google_sql_database_instance.database_instance
+    google_sql_database_instance.database_instance,
+    google_service_account.service_account,
+    google_project_iam_binding.metric_writer,
+    google_project_iam_binding.logging_admin
   ]
 }
