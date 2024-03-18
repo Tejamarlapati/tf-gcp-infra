@@ -105,6 +105,13 @@ The following variables are required to create a VPC via terraform.
 | database_instance[private_access_config]\[address_type]  | string |                | The address type of the private access configuration.                 | INTERNAL                                      |
 | database_instance[private_access_config]\[address]       | string |                | The address of the private access configuration.                      |                                               |
 | database_instance[private_access_config]\[prefix_length] | number |                | The prefix length of the private access configuration.                | 24                                            |
+| service_account_id                                       | string | yes            | The ID of the service account to attach to the instances.             |                                               |
+| service_account_vm_scopes                                | list   |                | A list of scopes to attach to the service account.                    | logging.write, monitoring.write               |
+| webapp_dns_record_set                                    | object | yes            | Configuration for the DNS record set for the web server.              |                                               |
+| webapp_dns_record_set[name]                              | string | yes            | The name of the DNS record set.                                       |                                               |
+| webapp_dns_record_set[type]                              | string | yes            | The type of the DNS record.                                           |                                               |
+| webapp_dns_record_set[ttl]                               | number | yes            | The TTL of the DNS record.                                            |                                               |
+| webapp_dns_record_set[managed_zone]                      | string | yes            | The DNS zone in which the record set is created.                      |                                               |
 
 \*conditionally => `subnets` (list(object{...})) are required if `vpc_auto_create_subnets` is set to `false` or else the subnets wouldn't be created for the VPC
 
