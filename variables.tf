@@ -254,6 +254,12 @@ variable "service_account_id" {
   type        = string
 }
 
+variable "service_account_iam_bindings" {
+  type        = list(string)
+  description = "The list of IAM roles to grant to the service account. Defaults to roles/logging.logWriter and roles/monitoring.metricWriter"
+  default     = ["roles/logging.admin", "roles/monitoring.metricWriter"]
+}
+
 variable "service_account_vm_scopes" {
   description = "The list of scopes to grant to the service account. Defaults to logging.write and monitoring.write"
   type        = list(string)

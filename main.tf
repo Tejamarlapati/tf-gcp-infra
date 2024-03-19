@@ -266,15 +266,10 @@ resource "google_service_account" "service_account" {
 }
 
 
-resource "google_project_iam_binding" "metric_writer" {
+resource "google_project_iam_binding" "service_account_iam_bindings" {
+  count   = length(var.service_account_iam_bindings)
   project = var.project_id
-  role    = "roles/monitoring.metricWriter"
-  members = [google_service_account.service_account.member]
-}
-
-resource "google_project_iam_binding" "logging_admin" {
-  project = var.project_id
-  role    = "roles/logging.admin"
+  role    = var.service_account_iam_bindings[count.index]
   members = [google_service_account.service_account.member]
 }
 
@@ -323,8 +318,7 @@ resource "google_compute_instance" "web_server" {
     google_compute_subnetwork.subnets,
     google_sql_database_instance.database_instance,
     google_service_account.service_account,
-    google_project_iam_binding.metric_writer,
-    google_project_iam_binding.logging_admin
+    google_project_iam_binding.service_account_iam_bindings
   ]
 }
 
