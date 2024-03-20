@@ -20,7 +20,7 @@ fi
     echo "DB_PORT=5432"
     echo "DB_TIMEOUT=10000"
     echo "LOG_FOLDER=/var/log/webapp"
-    echo "LOG_LEVEL=info"
+    echo "LOG_LEVEL=${loglevel}"
 } > /opt/webapp/dist/.env
 
 # Change the ownership of the /opt/webapp/dist/.env file to the csye6225 user
