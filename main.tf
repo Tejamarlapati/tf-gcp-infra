@@ -305,6 +305,7 @@ resource "google_compute_instance" "web_server" {
     host     = length(google_sql_database_instance.database_instance) > 0 ? "${google_sql_database_instance.database_instance.0.private_ip_address}" : ""
     username = local.database_sql_instance.database_username
     password = urlencode("${random_password.database_password.result}")
+    loglevel = var.webapp_log_level
   })
 
   service_account {

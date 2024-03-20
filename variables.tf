@@ -283,3 +283,14 @@ variable "webapp_dns_record_set" {
   }
   _EOT
 }
+
+variable "webapp_log_level" {
+  description = "The log level of the webapp. Defaults to info"
+  type        = string
+  default     = "info"
+
+  validation {
+    condition     = (var.webapp_log_level != null ? contains(["info", "warning", "error"], var.webapp_log_level) : false)
+    error_message = "Log level must be one of info, warning or error"
+  }
+}
