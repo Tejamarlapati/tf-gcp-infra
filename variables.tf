@@ -294,3 +294,79 @@ variable "webapp_log_level" {
     error_message = "Log level must be one of info, warning or error"
   }
 }
+
+variable "pubsub_topic" {
+  description = "Details of the Pub/Sub topic to create"
+  type = object({
+    name                       = string
+    message_retention_duration = string
+  })
+  default = {
+    name                       = "verify_email"
+    message_retention_duration = "7d"
+  }
+}
+
+variable "cloud_function_service_account_id" {
+  description = "The ID for service account to use for the Cloud Function"
+  type        = string
+  default     = "cloud-function-service-account"
+}
+
+variable "cloud_function_service_account_roles" {
+  description = "The list of IAM roles to grant to the service account. Defaults to roles/cloudfunctions.invoker"
+  type        = list(string)
+  default     = ["roles/cloudfunctions.invoker"]
+}
+
+variable "cloud_function_clone_url" {
+  description = "The URL of the repository to clone for the Cloud Function"
+  type        = string
+}
+
+variable "cloud_function" {
+  description = "Details of the Cloud Function to create"
+  type = object({
+    name     = string
+    location = optional(string)
+
+    runtime     = string
+    entry_point = string
+
+    service_config = optional(
+      object({
+        max_instance_count    = number
+        min_instance_count    = number
+        available_memory      = string
+        timeout_seconds       = number
+        environment_variables = map(string)
+      }),
+      {
+        max_instance_count    = 1
+        min_instance_count    = 1
+        available_memory      = "256M"
+        timeout_seconds       = 60,
+        environment_variables = {}
+      }
+    )
+
+    ingress_settings = optional(string, "ALLOW_INTERNAL_ONLY")
+
+    storage = object({
+      name        = string
+      object_name = string
+    })
+
+    trigger = optional(
+      object({
+        trigger_region = optional(string)
+        event_type     = string
+        retry_policy   = string
+      }),
+      {
+        event_type   = "google.cloud.pubsub.topic.v1.messagePublished",
+        retry_policy = "RETRY_POLICY_RETRY"
+      }
+    )
+  })
+}

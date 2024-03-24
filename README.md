@@ -17,6 +17,13 @@ This project relies on the following services to run for a project
 - `compute.googleapis.com`
 - `servicenetworking.googleapis.com`
 - `dns.googleapis.com`
+- `cloudbuild.googleapis.com`
+- `cloudfunctions.googleapis.com`
+- `logging.googleapis.com`
+- `pubsub.googleapis.com`
+- `eventarc.googleapis.com`
+- `run.googleapis.com`
+- `vpcaccess.googleapis.com`
 
 These can be enabled from cli after setting up the default project using the following commands:
 
