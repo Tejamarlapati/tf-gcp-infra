@@ -384,23 +384,6 @@ resource "google_service_account" "cloud_function_service_account" {
   description  = "${var.cloud_function_service_account_id} Service Account"
 }
 
-# data "google_iam_policy" "cloud_function_iam_policy" {
-#   dynamic "binding" {
-#     for_each = var.cloud_function_service_account_roles
-#     content {
-#       role    = binding.value
-#       members = [google_service_account.cloud_function_service_account.member]
-#     }
-#   }
-#   depends_on = [google_cloudfunctions2_function.cloud_function]
-# }
-
-# resource "google_cloudfunctions_function_iam_policy" "policy" {
-#   cloud_function = google_cloudfunctions2_function.cloud_function.id
-#   policy_data    = data.google_iam_policy.cloud_function_iam_policy.policy_data
-#   depends_on     = [google_cloudfunctions2_function.cloud_function]
-# }
-
 resource "google_vpc_access_connector" "cloud_function_db_connector" {
   name          = "cf-db-connector"
   ip_cidr_range = "10.20.0.0/28"
@@ -451,9 +434,43 @@ resource "google_cloudfunctions2_function" "cloud_function" {
   }
 
   event_trigger {
-    trigger_region = local.cloud_function.trigger.trigger_region
-    event_type     = local.cloud_function.trigger.event_type
-    pubsub_topic   = google_pubsub_topic.pubsub_topic.id
-    retry_policy   = local.cloud_function.trigger.retry_policy
+    service_account_email = google_service_account.cloud_function_service_account.email
+    trigger_region        = local.cloud_function.trigger.trigger_region
+    event_type            = local.cloud_function.trigger.event_type
+    pubsub_topic          = google_pubsub_topic.pubsub_topic.id
+    retry_policy          = local.cloud_function.trigger.retry_policy
   }
 }
+
+
+# -----------------------------------------------------
+# Setup IAM restrictions for topic
+# -----------------------------------------------------
+
+resource "google_pubsub_topic_iam_binding" "webapp_pubsub_topic_publisher_iam_binding" {
+  topic   = google_pubsub_topic.pubsub_topic.name
+  role    = "roles/pubsub.publisher"
+  members = [google_service_account.webapp_service_account.member]
+}
+
+resource "google_pubsub_topic_iam_binding" "cloud_function_pubsub_topic_subscriber_iam_binding" {
+  topic   = google_pubsub_topic.pubsub_topic.name
+  role    = "roles/pubsub.subscriber"
+  members = [google_service_account.cloud_function_service_account.member]
+}
+
+# -----------------------------------------------------
+# Setup IAM restrictions for cloud function
+# -----------------------------------------------------
+resource "google_cloud_run_v2_service_iam_binding" "cloud_function_cloud_run_invoker_iam_binding" {
+  name    = google_cloudfunctions2_function.cloud_function.name
+  role    = "roles/run.invoker"
+  members = [google_service_account.cloud_function_service_account.member]
+}
+
+# Need to check if following is needed?
+# resource "google_pubsub_topic_iam_binding" "cloud_function_pubsub_token_creator_iam_binding" {
+#   cloud_function = google_cloudfunctions2_function.cloud_function.name
+#   role           = "roles/iam.serviceAccountTokenCreator"
+#   members        = [google_service_account.cloud_function_service_account.member]
+# }
