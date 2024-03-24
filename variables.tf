@@ -319,11 +319,6 @@ variable "cloud_function_service_account_roles" {
   default     = ["roles/cloudfunctions.invoker"]
 }
 
-variable "cloud_function_clone_url" {
-  description = "The URL of the repository to clone for the Cloud Function"
-  type        = string
-}
-
 variable "cloud_function" {
   description = "Details of the Cloud Function to create"
   type = object({
