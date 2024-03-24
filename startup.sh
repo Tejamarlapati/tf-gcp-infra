@@ -21,6 +21,8 @@ fi
     echo "DB_TIMEOUT=10000"
     echo "LOG_FOLDER=/var/log/webapp"
     echo "LOG_LEVEL=${loglevel}"
+    echo "PUBSUB_TOPIC=${topicname}"
+    echo "EMAIL_EXPIRY_MINUTES=2"
 } > /opt/webapp/dist/.env
 
 # Change the ownership of the /opt/webapp/dist/.env file to the csye6225 user

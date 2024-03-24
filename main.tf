@@ -74,6 +74,29 @@ locals {
       name = "vpc-${var.vpc_name}-database-private-access"
     }, var.database_sql_instance.private_access_config)
   }
+
+  cloud_function = {
+    name        = var.cloud_function.name
+    location    = coalesce(var.cloud_function.location, var.region)
+    runtime     = var.cloud_function.runtime
+    entry_point = var.cloud_function.entry_point
+
+    service_config = merge({
+      max_instance_count    = 1
+      min_instance_count    = 1
+      available_memory      = "256M"
+      timeout_seconds       = 60
+      environment_variables = {}
+    }, var.cloud_function.service_config)
+
+    trigger = merge({
+      trigger_region = var.region,
+      event_type     = "google.cloud.pubsub.topic.v1.messagePublished",
+      retry_policy   = "RETRY_POLICY_RETRY"
+    }, var.cloud_function.trigger)
+
+    ingress_settings = coalesce(var.cloud_function.ingress_settings, "ALLOW_INTERNAL_ONLY")
+  }
 }
 
 # -----------------------------------------------------
@@ -260,17 +283,18 @@ resource "google_sql_user" "database_user" {
 # Creating service account for Ops Agent with IAM bindings
 # -----------------------------------------------------
 
-resource "google_service_account" "service_account" {
+resource "google_service_account" "webapp_service_account" {
   account_id   = var.service_account_id
-  display_name = "${var.service_account_id} Service Account"
+  display_name = "Webapp Service Account"
+  description  = "${var.service_account_id} Service Account"
 }
 
 
-resource "google_project_iam_binding" "service_account_iam_bindings" {
+resource "google_project_iam_binding" "webapp_service_account_iam_bindings" {
   count   = length(var.service_account_iam_bindings)
   project = var.project_id
   role    = var.service_account_iam_bindings[count.index]
-  members = [google_service_account.service_account.member]
+  members = [google_service_account.webapp_service_account.member]
 }
 
 # -----------------------------------------------------
@@ -301,15 +325,16 @@ resource "google_compute_instance" "web_server" {
   }
 
   metadata_startup_script = templatefile("./startup.sh", {
-    name     = length(google_sql_database.database) > 0 ? "${google_sql_database.database.0.name}" : ""
-    host     = length(google_sql_database_instance.database_instance) > 0 ? "${google_sql_database_instance.database_instance.0.private_ip_address}" : ""
-    username = local.database_sql_instance.database_username
-    password = urlencode("${random_password.database_password.result}")
-    loglevel = var.webapp_log_level
+    name      = length(google_sql_database.database) > 0 ? "${google_sql_database.database.0.name}" : ""
+    host      = length(google_sql_database_instance.database_instance) > 0 ? "${google_sql_database_instance.database_instance.0.private_ip_address}" : ""
+    username  = local.database_sql_instance.database_username
+    password  = urlencode("${random_password.database_password.result}")
+    loglevel  = var.webapp_log_level
+    topicname = google_pubsub_topic.pubsub_topic.name
   })
 
   service_account {
-    email  = google_service_account.service_account.email
+    email  = google_service_account.webapp_service_account.email
     scopes = var.service_account_vm_scopes
   }
 
@@ -318,8 +343,9 @@ resource "google_compute_instance" "web_server" {
     google_compute_firewall.firewall_rules,
     google_compute_subnetwork.subnets,
     google_sql_database_instance.database_instance,
-    google_service_account.service_account,
-    google_project_iam_binding.service_account_iam_bindings
+    google_service_account.webapp_service_account,
+    google_project_iam_binding.webapp_service_account_iam_bindings,
+    google_pubsub_topic.pubsub_topic
   ]
 }
 
@@ -334,4 +360,98 @@ resource "google_dns_record_set" "webapp_dns_record" {
   managed_zone = var.webapp_dns_record_set.managed_zone
   rrdatas      = [google_compute_instance.web_server[count.index].network_interface[count.index].access_config[count.index].nat_ip]
   depends_on   = [google_compute_instance.web_server]
+}
+
+# -----------------------------------------------------
+# Setup Pub/Sub Topic
+# -----------------------------------------------------
+
+resource "google_pubsub_topic" "pubsub_topic" {
+  project                    = var.project_id
+  name                       = var.pubsub_topic.name
+  message_retention_duration = var.pubsub_topic.message_retention_duration
+}
+
+# -----------------------------------------------------
+# Setup Google v2 Cloud Function
+# -----------------------------------------------------
+
+resource "google_service_account" "cloud_function_service_account" {
+  account_id   = var.cloud_function_service_account_id
+  display_name = "Cloud Function Service Account"
+  description  = "${var.cloud_function_service_account_id} Service Account"
+}
+
+# data "google_iam_policy" "cloud_function_iam_policy" {
+#   dynamic "binding" {
+#     for_each = var.cloud_function_service_account_roles
+#     content {
+#       role    = binding.value
+#       members = [google_service_account.cloud_function_service_account.member]
+#     }
+#   }
+#   depends_on = [google_cloudfunctions2_function.cloud_function]
+# }
+
+# resource "google_cloudfunctions_function_iam_policy" "policy" {
+#   cloud_function = google_cloudfunctions2_function.cloud_function.id
+#   policy_data    = data.google_iam_policy.cloud_function_iam_policy.policy_data
+#   depends_on     = [google_cloudfunctions2_function.cloud_function]
+# }
+
+resource "google_vpc_access_connector" "cloud_function_db_connector" {
+  name          = "cf-db-connector"
+  ip_cidr_range = "10.20.0.0/28"
+  network       = google_compute_network.vpc.self_link
+}
+
+resource "google_cloudfunctions2_function" "cloud_function" {
+  project     = var.project_id
+  name        = local.cloud_function.name
+  location    = local.cloud_function.location
+  description = "${local.cloud_function.name} Cloud Function"
+
+  build_config {
+    runtime     = local.cloud_function.runtime
+    entry_point = local.cloud_function.entry_point
+    environment_variables = {
+    }
+    source {
+      storage_source {
+        bucket = var.cloud_function_storage.name
+        object = var.cloud_function_storage.object_name
+      }
+    }
+  }
+
+  service_config {
+    max_instance_count = local.cloud_function.service_config.max_instance_count
+    min_instance_count = local.cloud_function.service_config.min_instance_count
+    available_memory   = local.cloud_function.service_config.available_memory
+    timeout_seconds    = local.cloud_function.service_config.timeout_seconds
+
+    environment_variables = merge({
+      "DB_NAME"     = "${google_sql_database.database.0.name}"
+      "DB_USER"     = "${local.database_sql_instance.database_username}"
+      "DB_PASSWORD" = urlencode("${random_password.database_password.result}")
+      "DB_HOST"     = "${google_sql_database_instance.database_instance.0.private_ip_address}"
+      "DB_PORT"     = "5432"
+      "DB_TIMEOUT"  = 10000
+      "SSL"         = true
+      "VERIFY_URL"  = "http://${google_dns_record_set.webapp_dns_record.0.name}/v1/user/verify"
+    }, local.cloud_function.service_config.environment_variables)
+
+    ingress_settings               = local.cloud_function.ingress_settings
+    all_traffic_on_latest_revision = true
+    service_account_email          = google_service_account.cloud_function_service_account.email
+    vpc_connector                  = google_vpc_access_connector.cloud_function_db_connector.self_link
+    vpc_connector_egress_settings  = "PRIVATE_RANGES_ONLY"
+  }
+
+  event_trigger {
+    trigger_region = local.cloud_function.trigger.trigger_region
+    event_type     = local.cloud_function.trigger.event_type
+    pubsub_topic   = google_pubsub_topic.pubsub_topic.id
+    retry_policy   = local.cloud_function.trigger.retry_policy
+  }
 }
