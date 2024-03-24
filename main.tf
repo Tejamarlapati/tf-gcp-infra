@@ -89,12 +89,14 @@ locals {
       environment_variables = {}
     }, var.cloud_function.service_config)
 
+
     trigger = merge({
       trigger_region = var.region,
       event_type     = "google.cloud.pubsub.topic.v1.messagePublished",
       retry_policy   = "RETRY_POLICY_RETRY"
     }, var.cloud_function.trigger)
 
+    storage          = var.cloud_function.storage
     ingress_settings = coalesce(var.cloud_function.ingress_settings, "ALLOW_INTERNAL_ONLY")
   }
 }
@@ -418,8 +420,8 @@ resource "google_cloudfunctions2_function" "cloud_function" {
     }
     source {
       storage_source {
-        bucket = var.cloud_function_storage.name
-        object = var.cloud_function_storage.object_name
+        bucket = local.cloud_function.storage.bucket_name
+        object = local.cloud_function.storage.object_name
       }
     }
   }

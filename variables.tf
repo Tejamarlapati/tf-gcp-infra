@@ -335,11 +335,11 @@ variable "cloud_function" {
 
     service_config = optional(
       object({
-        max_instance_count    = number
-        min_instance_count    = number
-        available_memory      = string
-        timeout_seconds       = number
-        environment_variables = map(string)
+        max_instance_count    = optional(number)
+        min_instance_count    = optional(number)
+        available_memory      = optional(string)
+        timeout_seconds       = optional(number)
+        environment_variables = optional(map(string))
       }),
       {
         max_instance_count    = 1
@@ -353,7 +353,7 @@ variable "cloud_function" {
     ingress_settings = optional(string, "ALLOW_INTERNAL_ONLY")
 
     storage = object({
-      name        = string
+      bucket_name = string
       object_name = string
     })
 
