@@ -442,7 +442,6 @@ resource "google_cloudfunctions2_function" "cloud_function" {
   }
 }
 
-
 # -----------------------------------------------------
 # Setup IAM restrictions for topic
 # -----------------------------------------------------
@@ -467,10 +466,3 @@ resource "google_cloud_run_v2_service_iam_binding" "cloud_function_cloud_run_inv
   role    = "roles/run.invoker"
   members = [google_service_account.cloud_function_service_account.member]
 }
-
-# Need to check if following is needed?
-# resource "google_pubsub_topic_iam_binding" "cloud_function_pubsub_token_creator_iam_binding" {
-#   cloud_function = google_cloudfunctions2_function.cloud_function.name
-#   role           = "roles/iam.serviceAccountTokenCreator"
-#   members        = [google_service_account.cloud_function_service_account.member]
-# }
