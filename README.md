@@ -24,6 +24,7 @@ This project relies on the following services to run for a project
 - `eventarc.googleapis.com`
 - `run.googleapis.com`
 - `vpcaccess.googleapis.com`
+- `certificatemanager.googleapis.com`
 
 These can be enabled from cli after setting up the default project using the following commands:
 
