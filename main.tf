@@ -528,12 +528,21 @@ resource "google_compute_region_autoscaler" "webapp" {
 }
 
 # -----------------------------------------------------
-# Setup Global External IP for Load Balancer
+# Setup Load Balancer
 # -----------------------------------------------------
-resource "google_compute_address" "load_balancer" {
-  name         = "${var.webapp_load_balancer.name}-ip"
-  address_type = "EXTERNAL"
-  ip_version   = "IPV4"
+module "external-regional-lb" {
+  source     = "./modules/external-regional-lb"
+  project_id = var.project_id
+  region     = var.region
+
+  name             = var.webapp_load_balancer.name
+  ssl_certificates = var.webapp_load_balancer.ssl_certificates
+
+  health_check = var.http_basic_health_check
+
+  network        = google_compute_network.vpc.self_link
+  instance_group = google_compute_region_instance_group_manager.webapp.instance_group
+  instance_tags  = google_compute_region_instance_template.webapp.tags
 }
 
 # -----------------------------------------------------
@@ -544,137 +553,6 @@ resource "google_dns_record_set" "load_balancer" {
   type         = var.webapp_dns_record_set.type
   ttl          = var.webapp_dns_record_set.ttl
   managed_zone = var.webapp_dns_record_set.managed_zone
-  rrdatas      = [google_compute_address.load_balancer.address]
-  depends_on   = [google_compute_region_backend_service.load_balancer]
-}
-
-# -----------------------------------------------------
-# Load Balancer Basic Health Check
-# -----------------------------------------------------
-resource "google_compute_region_health_check" "load_balancer" {
-  name = "${var.webapp_load_balancer.name}-health-check"
-
-  timeout_sec         = coalesce(var.http_basic_health_check.timeout_sec, 5)
-  check_interval_sec  = coalesce(var.http_basic_health_check.check_interval_sec, 5)
-  healthy_threshold   = coalesce(var.http_basic_health_check.healthy_threshold, 3)
-  unhealthy_threshold = coalesce(var.http_basic_health_check.unhealthy_threshold, 3)
-
-  http_health_check {
-    port_specification = "USE_SERVING_PORT"
-    request_path       = coalesce(var.http_basic_health_check.request_path, "/healthz")
-  }
-}
-
-# -----------------------------------------------------
-# Load Balancer Backend Service
-# -----------------------------------------------------
-resource "google_compute_region_backend_service" "load_balancer" {
-  name        = "${var.webapp_load_balancer.name}-backend"
-  description = "Backend for ${var.webapp_load_balancer.name} Load Balancer"
-  region      = var.region
-
-  load_balancing_scheme = "EXTERNAL_MANAGED"
-
-  protocol    = "HTTP"
-  port_name   = "http"
-  timeout_sec = 30
-
-  backend {
-    group           = google_compute_region_instance_group_manager.webapp.instance_group
-    balancing_mode  = "UTILIZATION"
-    capacity_scaler = 1.0
-  }
-
-  health_checks = [google_compute_region_health_check.load_balancer.id]
-
-  locality_lb_policy              = "ROUND_ROBIN"
-  session_affinity                = "NONE"
-  connection_draining_timeout_sec = 120
-}
-
-# -----------------------------------------------------
-# Load Balancer URL Map
-# -----------------------------------------------------
-resource "google_compute_region_url_map" "load_balancer" {
-  name            = var.webapp_load_balancer.name
-  default_service = google_compute_region_backend_service.load_balancer.id
-}
-
-# -----------------------------------------------------
-# Load Balancer SSL Certificate
-# -----------------------------------------------------
-# resource "google_compute_managed_ssl_certificate" "load_balancer" {
-#   name        = "${var.webapp_load_balancer.name}-ssl-certificate"
-#   description = "SSL Certificate for ${var.webapp_load_balancer.name} Load Balancer"
-#   managed {
-#     domains = [var.webapp_dns_record_set.name]
-#   }
-# }
-
-# -----------------------------------------------------
-# Load Balancer Target HTTPS Proxy
-# -----------------------------------------------------
-resource "google_compute_region_target_https_proxy" "load_balancer" {
-  name             = "${var.webapp_load_balancer.name}-proxy"
-  url_map          = google_compute_region_url_map.load_balancer.id
-  ssl_certificates = ["projects/csye6225-cloud-computing-dev/regions/us-east1/sslCertificates/tejamarlapati-me-us-east1"]
-}
-
-# -----------------------------------------------------
-# Load Balancer Proxy Subnet
-# -----------------------------------------------------
-resource "google_compute_subnetwork" "load_balancer_proxy_subnet" {
-  name          = "${var.webapp_load_balancer.name}-proxy-subnet"
-  purpose       = "REGIONAL_MANAGED_PROXY"
-  role          = "ACTIVE"
-  ip_cidr_range = "10.0.10.0/24"
-  network       = google_compute_network.vpc.id
-}
-
-# -----------------------------------------------------
-# Load Balancer Forwarding Rule
-# -----------------------------------------------------
-resource "google_compute_forwarding_rule" "load_balancer" {
-  name                  = "${var.webapp_load_balancer.name}-https-forwarding-rule"
-  target                = google_compute_region_target_https_proxy.load_balancer.id
-  ip_address            = google_compute_address.load_balancer.address
-  ip_protocol           = "TCP"
-  port_range            = "443"
-  load_balancing_scheme = "EXTERNAL_MANAGED"
-  network               = google_compute_network.vpc.id
-  depends_on            = [google_compute_subnetwork.load_balancer_proxy_subnet]
-}
-
-# -----------------------------------------------------
-# Load Balancer Firewall Rule
-# -----------------------------------------------------
-resource "google_compute_firewall" "default" {
-  name = "${var.webapp_load_balancer.name}-allow-health-check"
-  allow {
-    protocol = "tcp"
-  }
-  direction     = "INGRESS"
-  network       = google_compute_network.vpc.self_link
-  priority      = 1000
-  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
-  target_tags   = ["load-balanced-backend", "webapp"]
-}
-
-resource "google_compute_firewall" "allow_proxy" {
-  name = "${var.webapp_load_balancer.name}-allow-proxies"
-  allow {
-    ports    = ["80"]
-    protocol = "tcp"
-  }
-
-  allow {
-    ports    = ["443"]
-    protocol = "tcp"
-  }
-
-  direction     = "INGRESS"
-  network       = google_compute_network.vpc.self_link
-  priority      = 1000
-  source_ranges = [google_compute_subnetwork.load_balancer_proxy_subnet.ip_cidr_range]
-  target_tags   = ["load-balanced-backend", "webapp"]
+  rrdatas      = [module.external-regional-lb.load_balancer.ip_address]
+  depends_on   = [module.external-regional-lb.load_balancer]
 }
