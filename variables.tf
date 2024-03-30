@@ -430,12 +430,14 @@ variable "webapp_auto_scaler" {
 
 variable "webapp_load_balancer" {
   type = object({
-    name = string
+    name             = string
+    ssl_certificates = list(string)
   })
 
   description = <<-_EOT
   {
-    name = "(Required) The name of the load balancer"
+    name             = "(Required) The name of the load balancer"
+    ssl_certificates = "(Required) The list of SSL certificates to use for the load balancer"
   }
   _EOT
 }
