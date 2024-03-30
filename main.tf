@@ -300,71 +300,6 @@ resource "google_project_iam_binding" "webapp_service_account_iam_bindings" {
 }
 
 # -----------------------------------------------------
-# Setup Web Server Compute Instance
-# -----------------------------------------------------
-
-resource "google_compute_instance" "web_server" {
-  provider     = google
-  count        = var.webapp_compute_instance == null ? 0 : 1
-  name         = var.webapp_compute_instance.name
-  machine_type = var.webapp_compute_instance.machine_type
-  zone         = var.webapp_compute_instance.zone
-  tags         = var.webapp_compute_instance.tags
-  boot_disk {
-    initialize_params {
-      image = var.webapp_compute_instance.image
-      size  = var.webapp_compute_instance.disk_size
-      type  = var.webapp_compute_instance.disk_type
-    }
-  }
-  network_interface {
-    network    = google_compute_network.vpc.self_link
-    subnetwork = google_compute_subnetwork.subnets[index(google_compute_subnetwork.subnets.*.name, var.webapp_compute_instance.subnet_name)].self_link
-
-    // Ephemeral IP
-    access_config {
-    }
-  }
-
-  metadata_startup_script = templatefile("./startup.sh", {
-    name      = length(google_sql_database.database) > 0 ? "${google_sql_database.database.0.name}" : ""
-    host      = length(google_sql_database_instance.database_instance) > 0 ? "${google_sql_database_instance.database_instance.0.private_ip_address}" : ""
-    username  = local.database_sql_instance.database_username
-    password  = urlencode("${random_password.database_password.result}")
-    loglevel  = var.webapp_log_level
-    topicname = google_pubsub_topic.pubsub_topic.name
-  })
-
-  service_account {
-    email  = google_service_account.webapp_service_account.email
-    scopes = var.service_account_vm_scopes
-  }
-
-  depends_on = [
-    google_compute_network.vpc,
-    google_compute_firewall.firewall_rules,
-    google_compute_subnetwork.subnets,
-    google_sql_database_instance.database_instance,
-    google_service_account.webapp_service_account,
-    google_project_iam_binding.webapp_service_account_iam_bindings,
-    google_pubsub_topic.pubsub_topic
-  ]
-}
-
-# -----------------------------------------------------
-# Setup DNS for the Web Server
-# -----------------------------------------------------
-resource "google_dns_record_set" "webapp_dns_record" {
-  count        = var.webapp_dns_record_set == null ? 0 : 1
-  name         = var.webapp_dns_record_set.name
-  type         = var.webapp_dns_record_set.type
-  ttl          = var.webapp_dns_record_set.ttl
-  managed_zone = var.webapp_dns_record_set.managed_zone
-  rrdatas      = [google_compute_instance.web_server[count.index].network_interface[count.index].access_config[count.index].nat_ip]
-  depends_on   = [google_compute_instance.web_server]
-}
-
-# -----------------------------------------------------
 # Setup Pub/Sub Topic
 # -----------------------------------------------------
 
@@ -423,7 +358,6 @@ resource "google_cloudfunctions2_function" "cloud_function" {
       "DB_PORT"     = "5432"
       "DB_TIMEOUT"  = 10000
       "SSL"         = true
-      "VERIFY_URL"  = "http://${google_dns_record_set.webapp_dns_record.0.name}/v1/user/verify"
     }, local.cloud_function.service_config.environment_variables)
 
     ingress_settings               = local.cloud_function.ingress_settings
@@ -446,13 +380,13 @@ resource "google_cloudfunctions2_function" "cloud_function" {
 # Setup IAM restrictions for topic
 # -----------------------------------------------------
 
-resource "google_pubsub_topic_iam_binding" "webapp_pubsub_topic_publisher_iam_binding" {
+resource "google_pubsub_topic_iam_binding" "webapp" {
   topic   = google_pubsub_topic.pubsub_topic.name
   role    = "roles/pubsub.publisher"
   members = [google_service_account.webapp_service_account.member]
 }
 
-resource "google_pubsub_topic_iam_binding" "cloud_function_pubsub_topic_subscriber_iam_binding" {
+resource "google_pubsub_topic_iam_binding" "cloud_function" {
   topic   = google_pubsub_topic.pubsub_topic.name
   role    = "roles/pubsub.subscriber"
   members = [google_service_account.cloud_function_service_account.member]
@@ -461,8 +395,286 @@ resource "google_pubsub_topic_iam_binding" "cloud_function_pubsub_topic_subscrib
 # -----------------------------------------------------
 # Setup IAM restrictions for cloud function
 # -----------------------------------------------------
-resource "google_cloud_run_v2_service_iam_binding" "cloud_function_cloud_run_invoker_iam_binding" {
+resource "google_cloud_run_v2_service_iam_binding" "cloud_function" {
   name    = google_cloudfunctions2_function.cloud_function.name
   role    = "roles/run.invoker"
   members = [google_service_account.cloud_function_service_account.member]
+}
+
+# -----------------------------------------------------
+# Regional Compute Instance Template
+# -----------------------------------------------------
+
+resource "google_compute_region_instance_template" "webapp" {
+  region = var.region
+
+  name_prefix    = "${var.webapp_compute_instance.name}-template-"
+  can_ip_forward = false
+
+  description          = "This template is used to create ${var.webapp_compute_instance.name} instances."
+  instance_description = "${var.webapp_compute_instance.name} Instance"
+
+  tags         = var.webapp_compute_instance.tags
+  machine_type = var.webapp_compute_instance.machine_type
+
+  disk {
+    source_image = var.webapp_compute_instance.image
+    auto_delete  = true
+    boot         = true
+    type         = var.webapp_compute_instance.disk_type
+    disk_size_gb = var.webapp_compute_instance.disk_size
+  }
+
+  network_interface {
+    network    = google_compute_network.vpc.self_link
+    subnetwork = google_compute_subnetwork.subnets[index(google_compute_subnetwork.subnets.*.name, var.webapp_compute_instance.subnet_name)].self_link
+  }
+
+  metadata_startup_script = templatefile("./startup.sh", {
+    name      = length(google_sql_database.database) > 0 ? "${google_sql_database.database.0.name}" : ""
+    host      = length(google_sql_database_instance.database_instance) > 0 ? "${google_sql_database_instance.database_instance.0.private_ip_address}" : ""
+    username  = local.database_sql_instance.database_username
+    password  = urlencode("${random_password.database_password.result}")
+    loglevel  = var.webapp_log_level
+    topicname = google_pubsub_topic.pubsub_topic.name
+  })
+
+  service_account {
+    email  = google_service_account.webapp_service_account.email
+    scopes = var.service_account_vm_scopes
+  }
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes        = [disk[0]]
+  }
+
+  depends_on = [
+    google_compute_network.vpc,
+    google_compute_firewall.firewall_rules,
+    google_compute_subnetwork.subnets,
+    google_sql_database_instance.database_instance,
+    google_service_account.webapp_service_account,
+    google_project_iam_binding.webapp_service_account_iam_bindings,
+    google_pubsub_topic.pubsub_topic
+  ]
+}
+
+# -----------------------------------------------------
+# Webapp Compute instance Health Check
+# -----------------------------------------------------
+resource "google_compute_health_check" "webapp" {
+  name = coalesce(var.http_basic_health_check.name, "webapp-http-health-check")
+
+  timeout_sec         = coalesce(var.http_basic_health_check.timeout_sec, 5)
+  check_interval_sec  = coalesce(var.http_basic_health_check.check_interval_sec, 5)
+  healthy_threshold   = coalesce(var.http_basic_health_check.healthy_threshold, 3)
+  unhealthy_threshold = coalesce(var.http_basic_health_check.unhealthy_threshold, 3)
+
+  http_health_check {
+    request_path = coalesce(var.http_basic_health_check.request_path, "/healthz")
+    port         = coalesce(var.http_basic_health_check.port, 80)
+  }
+}
+
+# -----------------------------------------------------
+# Regional Webapp Instance Group Manager
+# -----------------------------------------------------
+resource "google_compute_region_instance_group_manager" "webapp" {
+  name        = "${var.webapp_compute_instance.name}-group-manager"
+  description = "This instance group manager is used to manage ${var.webapp_compute_instance.name} instances."
+
+  region                    = var.region
+  distribution_policy_zones = ["${var.region}-b", "${var.region}-c", "${var.region}-d"]
+
+  version {
+    instance_template = google_compute_region_instance_template.webapp.self_link
+  }
+
+  auto_healing_policies {
+    initial_delay_sec = 120
+    health_check      = google_compute_health_check.webapp.self_link
+  }
+
+  named_port {
+    name = "http"
+    port = 80
+  }
+
+  base_instance_name = var.webapp_compute_instance.name
+
+  instance_lifecycle_policy {
+    default_action_on_failure = "REPAIR"
+  }
+}
+
+# -----------------------------------------------------
+# Regional Webapp Instance Auto Scaler
+# -----------------------------------------------------
+resource "google_compute_region_autoscaler" "webapp" {
+  name   = coalesce(var.webapp_auto_scaler.name, "${var.webapp_compute_instance.name}-autoscaler")
+  target = google_compute_region_instance_group_manager.webapp.id
+
+  autoscaling_policy {
+    mode            = "ON"
+    min_replicas    = coalesce(var.webapp_auto_scaler.min_replicas, 3)
+    max_replicas    = coalesce(var.webapp_auto_scaler.max_replicas, 6)
+    cooldown_period = coalesce(var.webapp_auto_scaler.cooldown_period, 120)
+
+    cpu_utilization {
+      target = coalesce(var.webapp_auto_scaler.cpu_utilization_target, 0.05)
+    }
+  }
+}
+
+# -----------------------------------------------------
+# Setup Global External IP for Load Balancer
+# -----------------------------------------------------
+resource "google_compute_address" "load_balancer" {
+  name         = "${var.webapp_load_balancer.name}-ip"
+  address_type = "EXTERNAL"
+  ip_version   = "IPV4"
+}
+
+# -----------------------------------------------------
+# Setup DNS for the Load Balancer
+# -----------------------------------------------------
+resource "google_dns_record_set" "load_balancer" {
+  name         = var.webapp_dns_record_set.name
+  type         = var.webapp_dns_record_set.type
+  ttl          = var.webapp_dns_record_set.ttl
+  managed_zone = var.webapp_dns_record_set.managed_zone
+  rrdatas      = [google_compute_address.load_balancer.address]
+  depends_on   = [google_compute_region_backend_service.load_balancer]
+}
+
+# -----------------------------------------------------
+# Load Balancer Basic Health Check
+# -----------------------------------------------------
+resource "google_compute_region_health_check" "load_balancer" {
+  name = "${var.webapp_load_balancer.name}-health-check"
+
+  timeout_sec         = coalesce(var.http_basic_health_check.timeout_sec, 5)
+  check_interval_sec  = coalesce(var.http_basic_health_check.check_interval_sec, 5)
+  healthy_threshold   = coalesce(var.http_basic_health_check.healthy_threshold, 3)
+  unhealthy_threshold = coalesce(var.http_basic_health_check.unhealthy_threshold, 3)
+
+  http_health_check {
+    port_specification = "USE_SERVING_PORT"
+    request_path       = coalesce(var.http_basic_health_check.request_path, "/healthz")
+  }
+}
+
+# -----------------------------------------------------
+# Load Balancer Backend Service
+# -----------------------------------------------------
+resource "google_compute_region_backend_service" "load_balancer" {
+  name        = "${var.webapp_load_balancer.name}-backend"
+  description = "Backend for ${var.webapp_load_balancer.name} Load Balancer"
+  region      = var.region
+
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+
+  protocol    = "HTTP"
+  port_name   = "http"
+  timeout_sec = 30
+
+  backend {
+    group           = google_compute_region_instance_group_manager.webapp.instance_group
+    balancing_mode  = "UTILIZATION"
+    capacity_scaler = 1.0
+  }
+
+  health_checks = [google_compute_region_health_check.load_balancer.id]
+
+  locality_lb_policy              = "ROUND_ROBIN"
+  session_affinity                = "NONE"
+  connection_draining_timeout_sec = 120
+}
+
+# -----------------------------------------------------
+# Load Balancer URL Map
+# -----------------------------------------------------
+resource "google_compute_region_url_map" "load_balancer" {
+  name            = var.webapp_load_balancer.name
+  default_service = google_compute_region_backend_service.load_balancer.id
+}
+
+# -----------------------------------------------------
+# Load Balancer SSL Certificate
+# -----------------------------------------------------
+# resource "google_compute_managed_ssl_certificate" "load_balancer" {
+#   name        = "${var.webapp_load_balancer.name}-ssl-certificate"
+#   description = "SSL Certificate for ${var.webapp_load_balancer.name} Load Balancer"
+#   managed {
+#     domains = [var.webapp_dns_record_set.name]
+#   }
+# }
+
+# -----------------------------------------------------
+# Load Balancer Target HTTPS Proxy
+# -----------------------------------------------------
+resource "google_compute_region_target_https_proxy" "load_balancer" {
+  name             = "${var.webapp_load_balancer.name}-proxy"
+  url_map          = google_compute_region_url_map.load_balancer.id
+  ssl_certificates = ["projects/csye6225-cloud-computing-dev/regions/us-east1/sslCertificates/tejamarlapati-me-us-east1"]
+}
+
+# -----------------------------------------------------
+# Load Balancer Proxy Subnet
+# -----------------------------------------------------
+resource "google_compute_subnetwork" "load_balancer_proxy_subnet" {
+  name          = "${var.webapp_load_balancer.name}-proxy-subnet"
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  role          = "ACTIVE"
+  ip_cidr_range = "10.0.10.0/24"
+  network       = google_compute_network.vpc.id
+}
+
+# -----------------------------------------------------
+# Load Balancer Forwarding Rule
+# -----------------------------------------------------
+resource "google_compute_forwarding_rule" "load_balancer" {
+  name                  = "${var.webapp_load_balancer.name}-https-forwarding-rule"
+  target                = google_compute_region_target_https_proxy.load_balancer.id
+  ip_address            = google_compute_address.load_balancer.address
+  ip_protocol           = "TCP"
+  port_range            = "443"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  network               = google_compute_network.vpc.id
+  depends_on            = [google_compute_subnetwork.load_balancer_proxy_subnet]
+}
+
+# -----------------------------------------------------
+# Load Balancer Firewall Rule
+# -----------------------------------------------------
+resource "google_compute_firewall" "default" {
+  name = "${var.webapp_load_balancer.name}-allow-health-check"
+  allow {
+    protocol = "tcp"
+  }
+  direction     = "INGRESS"
+  network       = google_compute_network.vpc.self_link
+  priority      = 1000
+  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
+  target_tags   = ["load-balanced-backend", "webapp"]
+}
+
+resource "google_compute_firewall" "allow_proxy" {
+  name = "${var.webapp_load_balancer.name}-allow-proxies"
+  allow {
+    ports    = ["80"]
+    protocol = "tcp"
+  }
+
+  allow {
+    ports    = ["443"]
+    protocol = "tcp"
+  }
+
+  direction     = "INGRESS"
+  network       = google_compute_network.vpc.self_link
+  priority      = 1000
+  source_ranges = [google_compute_subnetwork.load_balancer_proxy_subnet.ip_cidr_range]
+  target_tags   = ["load-balanced-backend", "webapp"]
 }
