@@ -365,3 +365,77 @@ variable "cloud_function" {
     )
   })
 }
+
+variable "http_basic_health_check" {
+  type = object({
+    name                = optional(string)
+    timeout_sec         = optional(number)
+    check_interval_sec  = optional(number)
+    healthy_threshold   = optional(number)
+    unhealthy_threshold = optional(number)
+    request_path        = optional(string)
+    port                = optional(number)
+  })
+
+  description = <<-_EOT
+  {
+    name                = "(Optional) The name of the health check. Defaults to 'webapp-http-health-check'"
+    timeout_sec         = "(Optional) The timeout of the health check. Defaults to 5"
+    check_interval_sec  = "(Optional) The check interval of the health check. Defaults to 5"
+    healthy_threshold   = "(Optional) The healthy threshold of the health check. Defaults to 3"
+    unhealthy_threshold = "(Optional) The unhealthy threshold of the health check. Defaults to 3"
+    request_path        = "(Optional) The request path of the health check. Defaults to '/healthz'"
+    port                = "(Optional) The port of the health check. Defaults to 80"
+  }
+  _EOT
+
+  default = {
+    name                = "webapp-http-health-check"
+    timeout_sec         = 5
+    check_interval_sec  = 5
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    request_path        = "/healthz"
+    port                = 80
+  }
+}
+
+variable "webapp_auto_scaler" {
+  type = object({
+    name                   = optional(string)
+    min_replicas           = optional(number)
+    max_replicas           = optional(number)
+    cooldown_period        = optional(number)
+    cpu_utilization_target = optional(number)
+  })
+
+  default = {
+    name                   = "webapp-auto-scaler"
+    min_replicas           = 3
+    max_replicas           = 6
+    cooldown_period        = 120
+    cpu_utilization_target = 0.05
+  }
+
+  description = <<-_EOT
+  {
+    name                   = "(Optional) The name of the auto scaler. Defaults to 'webapp-auto-scaler'"
+    min_replicas           = "(Optional) The minimum number of instances. Defaults to 3"
+    max_replicas           = "(Optional) The maximum number of instances. Defaults to 6"
+    cooldown_period        = "(Optional) The cooldown period. Defaults to 120"
+    cpu_utilization_target = "(Optional) The target CPU utilization. Defaults to 0.05"
+  }
+  _EOT
+}
+
+variable "webapp_load_balancer" {
+  type = object({
+    name = string
+  })
+
+  description = <<-_EOT
+  {
+    name = "(Required) The name of the load balancer"
+  }
+  _EOT
+}
