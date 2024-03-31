@@ -47,6 +47,13 @@ variable "ssl_certificates" {
   description = "The list of SSL certificates to use for the load balancer"
 }
 
+variable "ssl_certificate_domains" {
+  type        = list(string)
+  description = "Create a managed SSL certificate for the load balancer with the specified domains"
+  default     = null
+  nullable    = true
+}
+
 variable "health_check" {
   type = object({
     timeout_sec         = optional(number, 5)
@@ -77,5 +84,22 @@ variable "health_check" {
     unhealthy_threshold = 3
     request_path        = "/healthz"
     port                = 80
+  }
+}
+
+variable "ip_settings" {
+  type = object({
+    create_ip  = optional(bool, false)
+    ip_address = optional(string, "")
+  })
+  description = "The IP settings for the load balancer"
+  default = {
+    create_ip  = false
+    ip_address = ""
+  }
+
+  validation {
+    condition     = var.ip_settings.create_ip == true || (var.ip_settings.create_ip == false && var.ip_settings.ip_address != "")
+    error_message = "The load balancer ip_address cannot be an empty string when create_ip is false"
   }
 }
