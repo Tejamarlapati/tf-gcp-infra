@@ -17,8 +17,9 @@ module "external-lb" {
   project_id = var.project_id
   region     = var.region
 
-  name             = var.webapp_load_balancer.name
-  ssl_certificates = var.webapp_load_balancer.ssl_certificates
+  name                    = var.webapp_load_balancer.name
+  ssl_certificates        = var.webapp_load_balancer.ssl_certificates
+  ssl_certificate_domains = [var.webapp_dns_record_set.name]
 
   health_check = var.http_basic_health_check
 

@@ -2,8 +2,8 @@ locals {
   instance_tags    = concat(["load-balanced-backend"], coalesce(var.instance_tags, []))
   create_ip        = coalesce(var.ip_settings.create_ip, false)
   ip_address       = local.create_ip ? "${google_compute_global_address.load_balancer.0.address}" : var.ip_settings.ip_address
-  create_ssl       = coalesce(var.ssl_certificates, []) == []
-  ssl_certificates = local.create_ssl ? [google_compute_managed_ssl_certificate.load_balancer.0.id] : var.ssl_certificates
+  create_ssl       = coalescelist(var.ssl_certificates, ["DEFAULT"]) == ["DEFAULT"]
+  ssl_certificates = local.create_ssl ? google_compute_managed_ssl_certificate.load_balancer.*.id : var.ssl_certificates
 }
 
 # -----------------------------------------------------
@@ -85,7 +85,8 @@ resource "google_compute_managed_ssl_certificate" "load_balancer" {
 resource "google_compute_target_https_proxy" "load_balancer" {
   name             = "${var.name}-https-proxy"
   url_map          = google_compute_url_map.load_balancer.id
-  ssl_certificates = local.ssl_certificates # TODO: Use Google Managed Certificate
+  ssl_certificates = local.ssl_certificates
+  depends_on       = [google_compute_managed_ssl_certificate.load_balancer]
 }
 
 # -----------------------------------------------------
