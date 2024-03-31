@@ -290,7 +290,7 @@ variable "webapp_log_level" {
   default     = "info"
 
   validation {
-    condition     = (var.webapp_log_level != null ? contains(["info", "warning", "error"], var.webapp_log_level) : false)
+    condition     = (var.webapp_log_level != null ? contains(["debug", "info", "warning", "error"], var.webapp_log_level) : false)
     error_message = "Log level must be one of info, warning or error"
   }
 }
@@ -432,12 +432,14 @@ variable "webapp_load_balancer" {
   type = object({
     name             = string
     ssl_certificates = list(string)
+    ip_address       = string
   })
 
   description = <<-_EOT
   {
     name             = "(Required) The name of the load balancer"
     ssl_certificates = "(Required) The list of SSL certificates to use for the load balancer"
+    ip_address       = "(Required) The IP address of the load balancer"
   }
   _EOT
 }
