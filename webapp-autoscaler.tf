@@ -43,6 +43,7 @@ resource "google_compute_region_instance_template" "webapp" {
   network_interface {
     network    = google_compute_network.vpc.self_link
     subnetwork = google_compute_subnetwork.subnets[index(google_compute_subnetwork.subnets.*.name, var.webapp_compute_instance.subnet_name)].self_link
+    access_config {}
   }
 
   metadata_startup_script = templatefile("./startup.sh", {
@@ -107,7 +108,7 @@ resource "google_compute_region_instance_group_manager" "webapp" {
   }
 
   auto_healing_policies {
-    initial_delay_sec = 120
+    initial_delay_sec = 240
     health_check      = google_compute_health_check.webapp.self_link
   }
 
@@ -138,6 +139,10 @@ resource "google_compute_region_autoscaler" "webapp" {
 
     cpu_utilization {
       target = coalesce(var.webapp_auto_scaler.cpu_utilization_target, 0.05)
+    }
+
+    scale_in_control {
+      time_window_sec = coalesce(var.webapp_auto_scaler.scale_in_control_time_window_sec, 300)
     }
   }
 }
