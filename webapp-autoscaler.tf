@@ -36,7 +36,7 @@ resource "google_compute_region_instance_template" "webapp" {
     source_image = var.webapp_compute_instance.image
     auto_delete  = true
     boot         = true
-    type         = var.webapp_compute_instance.disk_type
+    disk_type    = var.webapp_compute_instance.disk_type
     disk_size_gb = var.webapp_compute_instance.disk_size
   }
 
@@ -62,7 +62,7 @@ resource "google_compute_region_instance_template" "webapp" {
 
   lifecycle {
     create_before_destroy = true
-    ignore_changes        = [disk[0]]
+    # ignore_changes        = [disk[0]]
   }
 
   depends_on = [
@@ -122,6 +122,16 @@ resource "google_compute_region_instance_group_manager" "webapp" {
   instance_lifecycle_policy {
     default_action_on_failure = "REPAIR"
   }
+
+  update_policy {
+    type                           = "PROACTIVE"
+    instance_redistribution_type   = "PROACTIVE"
+    minimal_action                 = "REPLACE"
+    most_disruptive_allowed_action = "REPLACE"
+    max_surge_percent              = 0
+    max_unavailable_fixed          = 3
+    replacement_method             = "SUBSTITUTE"
+  }
 }
 
 # -----------------------------------------------------
@@ -141,8 +151,14 @@ resource "google_compute_region_autoscaler" "webapp" {
       target = coalesce(var.webapp_auto_scaler.cpu_utilization_target, 0.05)
     }
 
-    scale_in_control {
-      time_window_sec = coalesce(var.webapp_auto_scaler.scale_in_control_time_window_sec, 300)
+    dynamic "scale_in_control" {
+      for_each = var.webapp_auto_scaler.scale_in_control == null ? [] : [var.webapp_auto_scaler.scale_in_control]
+      content {
+        max_scaled_in_replicas {
+          fixed = coalesce(scale_in_control.value.max_scaled_in_replicas_fixed, 1)
+        }
+        time_window_sec = coalesce(scale_in_control.value.time_window_sec, 300)
+      }
     }
   }
 }

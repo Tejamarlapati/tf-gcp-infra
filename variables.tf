@@ -402,12 +402,16 @@ variable "http_basic_health_check" {
 
 variable "webapp_auto_scaler" {
   type = object({
-    name                             = optional(string, "webapp-auto-scaler")
-    min_replicas                     = optional(number, 3)
-    max_replicas                     = optional(number, 6)
-    cooldown_period                  = optional(number, 120)
-    cpu_utilization_target           = optional(number, 0.05)
-    scale_in_control_time_window_sec = optional(number, 300)
+    name                   = optional(string, "webapp-auto-scaler")
+    min_replicas           = optional(number, 3)
+    max_replicas           = optional(number, 6)
+    cooldown_period        = optional(number, 120)
+    cpu_utilization_target = optional(number, 0.05)
+
+    scale_in_control = optional(object({
+      max_scaled_in_replicas_fixed = optional(number, 1)
+      time_window_sec              = optional(number, 300)
+    }), null)
   })
 
   default = {
@@ -416,6 +420,7 @@ variable "webapp_auto_scaler" {
     max_replicas           = 6
     cooldown_period        = 120
     cpu_utilization_target = 0.05
+    scale_in_control       = null
   }
 
   description = <<-_EOT
@@ -425,7 +430,9 @@ variable "webapp_auto_scaler" {
     max_replicas                     = "(Optional) The maximum number of instances. Defaults to 6"
     cooldown_period                  = "(Optional) The cooldown period. Defaults to 120"
     cpu_utilization_target           = "(Optional) The target CPU utilization. Defaults to 0.05"
-    scale_in_control_time_window_sec = "(Optional) The time window for scale in control. Defaults to 300"
+    scale_in_control                 = "(Optional) The scale in control configuration"
+    scale_in_control.max_scaled_in_replicas_fixed = "(Optional) The maximum number of instances that can be scaled in. Defaults to 1"
+    scale_in_control.time_window_sec              = "(Optional) The time window in seconds. Defaults to 300"
   }
   _EOT
 }
