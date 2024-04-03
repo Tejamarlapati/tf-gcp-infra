@@ -402,11 +402,12 @@ variable "http_basic_health_check" {
 
 variable "webapp_auto_scaler" {
   type = object({
-    name                   = optional(string)
-    min_replicas           = optional(number)
-    max_replicas           = optional(number)
-    cooldown_period        = optional(number)
-    cpu_utilization_target = optional(number)
+    name                             = optional(string, "webapp-auto-scaler")
+    min_replicas                     = optional(number, 3)
+    max_replicas                     = optional(number, 6)
+    cooldown_period                  = optional(number, 120)
+    cpu_utilization_target           = optional(number, 0.05)
+    scale_in_control_time_window_sec = optional(number, 300)
   })
 
   default = {
@@ -419,11 +420,12 @@ variable "webapp_auto_scaler" {
 
   description = <<-_EOT
   {
-    name                   = "(Optional) The name of the auto scaler. Defaults to 'webapp-auto-scaler'"
-    min_replicas           = "(Optional) The minimum number of instances. Defaults to 3"
-    max_replicas           = "(Optional) The maximum number of instances. Defaults to 6"
-    cooldown_period        = "(Optional) The cooldown period. Defaults to 120"
-    cpu_utilization_target = "(Optional) The target CPU utilization. Defaults to 0.05"
+    name                             = "(Optional) The name of the auto scaler. Defaults to 'webapp-auto-scaler'"
+    min_replicas                     = "(Optional) The minimum number of instances. Defaults to 3"
+    max_replicas                     = "(Optional) The maximum number of instances. Defaults to 6"
+    cooldown_period                  = "(Optional) The cooldown period. Defaults to 120"
+    cpu_utilization_target           = "(Optional) The target CPU utilization. Defaults to 0.05"
+    scale_in_control_time_window_sec = "(Optional) The time window for scale in control. Defaults to 300"
   }
   _EOT
 }
@@ -437,9 +439,9 @@ variable "webapp_load_balancer" {
 
   description = <<-_EOT
   {
-    name             = "(Required) The name of the load balancer"
-    ssl_certificates = "(Required) The list of SSL certificates to use for the load balancer"
-    ip_address       = "(Required) The IP address of the load balancer"
+    name                             = "(Required) The name of the load balancer"
+    ssl_certificates                 = "(Required) The list of SSL certificates to use for the load balancer"
+    ip_address                       = "(Required) The IP address of the load balancer"
   }
   _EOT
 }
