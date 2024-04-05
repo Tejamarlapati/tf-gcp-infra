@@ -405,7 +405,7 @@ variable "webapp_auto_scaler" {
     name                   = optional(string, "webapp-auto-scaler")
     min_replicas           = optional(number, 3)
     max_replicas           = optional(number, 6)
-    cooldown_period        = optional(number, 120)
+    cooldown_period        = optional(number, 240)
     cpu_utilization_target = optional(number, 0.05)
 
     scale_in_control = optional(object({
@@ -418,7 +418,7 @@ variable "webapp_auto_scaler" {
     name                   = "webapp-auto-scaler"
     min_replicas           = 3
     max_replicas           = 6
-    cooldown_period        = 120
+    cooldown_period        = 240
     cpu_utilization_target = 0.05
     scale_in_control       = null
   }
@@ -428,7 +428,7 @@ variable "webapp_auto_scaler" {
     name                             = "(Optional) The name of the auto scaler. Defaults to 'webapp-auto-scaler'"
     min_replicas                     = "(Optional) The minimum number of instances. Defaults to 3"
     max_replicas                     = "(Optional) The maximum number of instances. Defaults to 6"
-    cooldown_period                  = "(Optional) The cooldown period. Defaults to 120"
+    cooldown_period                  = "(Optional) The cooldown period. Defaults to 240"
     cpu_utilization_target           = "(Optional) The target CPU utilization. Defaults to 0.05"
     scale_in_control                 = "(Optional) The scale in control configuration"
     scale_in_control.max_scaled_in_replicas_fixed = "(Optional) The maximum number of instances that can be scaled in. Defaults to 1"
@@ -451,4 +451,31 @@ variable "webapp_load_balancer" {
     ip_address                       = "(Required) The IP address of the load balancer"
   }
   _EOT
+}
+
+variable "key_prefix" {
+  description = "The prefix to use for the keys"
+  type        = string
+  default     = "csye6225"
+}
+
+variable "key_ring" {
+  description = "The prefix to use for the keys"
+  type = object({
+    id          = string
+    vm_key      = string
+    sql_key     = string
+    storage_key = string
+  })
+  default = null
+
+  validation {
+    condition     = (var.key_ring != null ? var.key_ring.id != null : true)
+    error_message = "Key ring id must be provided if key_ring is defined"
+  }
+
+  validation {
+    condition     = (var.key_ring != null ? var.key_ring.vm_key != null && var.key_ring.sql_key != null && var.key_ring.storage_key != null : true)
+    error_message = "If key_ring is provided, vm_key, sql_key and storage_key must be provided"
+  }
 }

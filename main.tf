@@ -2,9 +2,10 @@
 # Create database instance and setup database
 # -----------------------------------------------------
 module "database" {
-  source                = "./modules/database"
-  network               = google_compute_network.vpc.self_link
-  database_sql_instance = var.database_sql_instance
+  source                 = "./modules/database"
+  network                = google_compute_network.vpc.self_link
+  database_sql_instance  = var.database_sql_instance
+  disk_encryption_key_id = local.google_kms_crypto_key_sql
 }
 
 # -----------------------------------------------------

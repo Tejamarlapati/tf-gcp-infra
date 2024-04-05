@@ -45,6 +45,22 @@ resource "google_service_networking_connection" "database_private_access_network
 }
 
 # -----------------------------------------------------
+# Setup Database Encryption Key
+# -----------------------------------------------------
+
+resource "google_kms_crypto_key_iam_binding" "encrypter_decrypter" {
+  crypto_key_id = var.disk_encryption_key_id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  members       = ["serviceAccount:${google_project_service_identity.gcp_sa_cloud_sql.email}"]
+}
+
+resource "google_project_service_identity" "gcp_sa_cloud_sql" {
+  provider = google-beta
+  service  = "sqladmin.googleapis.com"
+}
+
+
+# -----------------------------------------------------
 # Setup Database Cloud SQL Instance
 # -----------------------------------------------------
 resource "random_id" "database_instance_id" {
@@ -56,6 +72,9 @@ resource "google_sql_database_instance" "database_instance" {
   region              = local.database_sql_instance.region
   database_version    = local.database_sql_instance.database_version
   deletion_protection = local.database_sql_instance.deletion_protection
+
+  encryption_key_name = var.disk_encryption_key_id
+
   settings {
     tier                        = local.database_sql_instance.tier
     availability_type           = local.database_sql_instance.availability_type
@@ -63,6 +82,7 @@ resource "google_sql_database_instance" "database_instance" {
     disk_type                   = local.database_sql_instance.disk_type
     disk_autoresize             = false
     deletion_protection_enabled = local.database_sql_instance.deletion_protection
+
     ip_configuration {
       private_network                               = google_service_networking_connection.database_private_access_networking_connection.network
       ipv4_enabled                                  = local.database_sql_instance.ip_configuration.ipv4_enabled
