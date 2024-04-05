@@ -17,6 +17,18 @@ resource "google_project_iam_binding" "webapp_service_account_iam_bindings" {
 }
 
 # -----------------------------------------------------
+# Adding CMEK roles to the service agent
+# -----------------------------------------------------
+data "google_project" "default" {
+}
+
+resource "google_project_iam_member" "custom_code" {
+  project = data.google_project.default.project_id
+  role    = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member  = "serviceAccount:service-${data.google_project.default.number}@compute-system.iam.gserviceaccount.com"
+}
+
+# -----------------------------------------------------
 # Regional Compute Instance Template
 # -----------------------------------------------------
 
@@ -38,12 +50,15 @@ resource "google_compute_region_instance_template" "webapp" {
     boot         = true
     disk_type    = var.webapp_compute_instance.disk_type
     disk_size_gb = var.webapp_compute_instance.disk_size
+
+    disk_encryption_key {
+      kms_key_self_link = local.google_kms_crypto_key_vm
+    }
   }
 
   network_interface {
     network    = google_compute_network.vpc.self_link
     subnetwork = google_compute_subnetwork.subnets[index(google_compute_subnetwork.subnets.*.name, var.webapp_compute_instance.subnet_name)].self_link
-    access_config {}
   }
 
   metadata_startup_script = templatefile("./startup.sh", {
@@ -126,9 +141,9 @@ resource "google_compute_region_instance_group_manager" "webapp" {
   update_policy {
     type                           = "PROACTIVE"
     instance_redistribution_type   = "PROACTIVE"
-    minimal_action                 = "REPLACE"
+    minimal_action                 = "REFRESH"
     most_disruptive_allowed_action = "REPLACE"
-    max_surge_percent              = 0
+    max_surge_fixed                = 3
     max_unavailable_fixed          = 3
     replacement_method             = "SUBSTITUTE"
   }
@@ -145,7 +160,7 @@ resource "google_compute_region_autoscaler" "webapp" {
     mode            = "ON"
     min_replicas    = coalesce(var.webapp_auto_scaler.min_replicas, 3)
     max_replicas    = coalesce(var.webapp_auto_scaler.max_replicas, 6)
-    cooldown_period = coalesce(var.webapp_auto_scaler.cooldown_period, 120)
+    cooldown_period = coalesce(var.webapp_auto_scaler.cooldown_period, 240)
 
     cpu_utilization {
       target = coalesce(var.webapp_auto_scaler.cpu_utilization_target, 0.05)

@@ -25,6 +25,7 @@ This project relies on the following services to run for a project
 - `run.googleapis.com`
 - `vpcaccess.googleapis.com`
 - `certificatemanager.googleapis.com`
+- `cloudkms.googleapis.com`
 
 These can be enabled from cli after setting up the default project using the following commands:
 

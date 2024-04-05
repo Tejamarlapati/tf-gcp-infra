@@ -3,6 +3,12 @@ variable "network" {
   description = "The VPC to use for the load balancer"
 }
 
+variable "disk_encryption_key_id" {
+  default     = null
+  type        = string
+  description = "The disk encryption key id to use for the database instance"
+}
+
 variable "database_sql_instance" {
   type = object({
     name                = string
@@ -13,6 +19,7 @@ variable "database_sql_instance" {
     database_version    = optional(string, "POSTGRES_15")
     disk_type           = optional(string, "pd-ssd")
     disk_size           = optional(number, 100)
+    disk_encryption_key = optional(string)
     availability_type   = optional(string, "REGIONAL")
     deletion_protection = optional(bool, true)
 
