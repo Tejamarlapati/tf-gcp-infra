@@ -30,16 +30,6 @@ locals {
 }
 
 # -----------------------------------------------------
-# Adding CMEK roles to the service agent
-# -----------------------------------------------------
-
-resource "google_kms_crypto_key_iam_binding" "storage_encrypter_decrypter" {
-  crypto_key_id = local.google_kms_crypto_key_storage
-  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  members       = ["serviceAccount:service-${data.google_project.default.number}@gs-project-accounts.iam.gserviceaccount.com"]
-}
-
-# -----------------------------------------------------
 # Create Cloud Function Storage Data
 # -----------------------------------------------------
 resource "null_resource" "git_clone" {

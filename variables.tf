@@ -471,6 +471,12 @@ variable "key_prefix" {
   default     = "csye6225"
 }
 
+variable "key_ring_crypto_keys_rotation_period" {
+  description = "The rotation period for the crypto keys"
+  type        = string
+  default     = "2592000s"
+}
+
 variable "key_ring" {
   description = "The prefix to use for the keys"
   type = object({

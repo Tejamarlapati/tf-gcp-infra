@@ -17,16 +17,6 @@ resource "google_project_iam_binding" "webapp_service_account_iam_bindings" {
 }
 
 # -----------------------------------------------------
-# Adding CMEK roles to the service agent
-# -----------------------------------------------------
-
-resource "google_kms_crypto_key_iam_binding" "vm_encrypter_decrypter" {
-  crypto_key_id = local.google_kms_crypto_key_vm
-  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  members       = ["serviceAccount:service-${data.google_project.default.number}@compute-system.iam.gserviceaccount.com"]
-}
-
-# -----------------------------------------------------
 # Regional Compute Instance Template
 # -----------------------------------------------------
 
