@@ -1,0 +1,61 @@
+
+title GCP Cloud Architecture
+
+// Define groups and nodes
+User [icon: user]
+Load Balancer [icon: gcp-load-balancer]
+Certificate Manager [icon: gcp-certificate-manager]
+Cloud DNS [icon: gcp-cloud-dns]
+Mangaged Instance Group {
+  Instance Group Manager [icon: gcp- ] {
+    Autoscaler [icon: gcp-cloud-endpoints]
+  }
+}
+VPC {
+  Webapp subnet [icon: gcp-subnet] {
+    Compute Instance 1 [icon: gcp-compute-engine]
+    Compute Instance 2 [icon: gcp-compute-engine]
+    Compute Instance 3 [icon: gcp-compute-engine]
+  }
+}
+
+Google Hosted VPC {
+  Cloud SQL postgres [icon: gcp-cloud-sql]
+}
+
+PubSub {
+  Topic [icon: gcp-pubsub]
+}
+Cloud Functions {
+  Send Email [icon: gcp-cloud-functions]
+}
+
+Webapp CI CD [icon: github-actions] {
+  Github Actions Build [icon: github-actions]
+  Github Actions Deploy [icon: github]
+}
+
+Serverless CI CD [icon: github-actions] {
+  Github Actions Build & Deploy [icon: github]
+}
+
+Google Cloud Bucket {
+  Source Code [icon: gcp-cloud-storage]
+}
+
+// Define connections where none are between a parent group and its own child node
+User <> Load Balancer
+Load Balancer < Certificate Manager
+Load Balancer < Cloud DNS
+Load Balancer <> Mangaged Instance Group
+Instance Group Manager > Compute Instance 1, Compute Instance 2, Compute Instance 3
+VPC <--> Google Hosted VPC: VPC Peering
+Compute Instance 1, Compute Instance 2,Compute Instance 3 > Topic: Publish
+Webapp subnet <> Cloud SQL postgres
+Cloud SQL postgres <> Send Email
+Topic > Send Email: Subscriber
+Github Actions Build > Github Actions Deploy
+Github Actions Deploy > Mangaged Instance Group: Deploy
+Cloud Functions <--> Google Hosted VPC: VPC Private Access Connector
+Github Actions Build & Deploy > Source Code
+Source Code > Cloud Functions

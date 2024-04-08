@@ -19,13 +19,11 @@ resource "google_project_iam_binding" "webapp_service_account_iam_bindings" {
 # -----------------------------------------------------
 # Adding CMEK roles to the service agent
 # -----------------------------------------------------
-data "google_project" "default" {
-}
 
-resource "google_project_iam_member" "custom_code" {
-  project = data.google_project.default.project_id
-  role    = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  member  = "serviceAccount:service-${data.google_project.default.number}@compute-system.iam.gserviceaccount.com"
+resource "google_kms_crypto_key_iam_binding" "vm_encrypter_decrypter" {
+  crypto_key_id = local.google_kms_crypto_key_vm
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  members       = ["serviceAccount:service-${data.google_project.default.number}@compute-system.iam.gserviceaccount.com"]
 }
 
 # -----------------------------------------------------
@@ -141,10 +139,10 @@ resource "google_compute_region_instance_group_manager" "webapp" {
   update_policy {
     type                           = "PROACTIVE"
     instance_redistribution_type   = "PROACTIVE"
-    minimal_action                 = "REFRESH"
+    minimal_action                 = "REPLACE"
     most_disruptive_allowed_action = "REPLACE"
     max_surge_fixed                = 3
-    max_unavailable_fixed          = 3
+    max_unavailable_fixed          = 0
     replacement_method             = "SUBSTITUTE"
   }
 }

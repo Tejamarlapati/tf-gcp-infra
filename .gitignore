@@ -35,3 +35,7 @@ terraform.rc
 
 # Ignoring the terraform lock file
 .terraform.lock.hcl
+
+# Ignore temporary files
+tmp/*
+.DS_Store

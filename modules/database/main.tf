@@ -48,7 +48,7 @@ resource "google_service_networking_connection" "database_private_access_network
 # Setup Database Encryption Key
 # -----------------------------------------------------
 
-resource "google_kms_crypto_key_iam_binding" "encrypter_decrypter" {
+resource "google_kms_crypto_key_iam_binding" "db_encrypter_decrypter" {
   crypto_key_id = var.disk_encryption_key_id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   members       = ["serviceAccount:${google_project_service_identity.gcp_sa_cloud_sql.email}"]

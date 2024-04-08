@@ -348,8 +348,10 @@ variable "cloud_function" {
     ingress_settings = optional(string, "ALLOW_INTERNAL_ONLY")
 
     storage = object({
-      bucket_name = string
-      object_name = string
+      bucket_name = optional(string)
+      object_name = optional(string)
+      clone_url   = optional(string)
+      local_path  = optional(string)
     })
 
     trigger = optional(
@@ -364,6 +366,16 @@ variable "cloud_function" {
       }
     )
   })
+
+  validation {
+    condition     = (var.cloud_function.storage != null)
+    error_message = "Storage configuration must be provided for the Cloud Function"
+  }
+
+  validation {
+    condition     = (var.cloud_function.storage.local_path != null || var.cloud_function.storage.clone_url != null || (var.cloud_function.storage.bucket_name != null && var.cloud_function.storage.object_name != null))
+    error_message = "Either (local_path) or (clone_url) or (bucket_name and object_name) must be provided in storage configuration"
+  }
 }
 
 variable "http_basic_health_check" {

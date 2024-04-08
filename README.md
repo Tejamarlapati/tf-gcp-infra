@@ -4,6 +4,10 @@ This repo contains terraform files to setup Infrastructure as Code on Google Clo
 
 ---
 
+## Architecture diagram
+
+![GCP Architecture Diagram](./architecture-diagram.png)
+
 ## Infrastructure as Code with Terraform and GCP
 
 ### Installation
