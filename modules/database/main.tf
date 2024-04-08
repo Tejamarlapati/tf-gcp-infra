@@ -45,22 +45,6 @@ resource "google_service_networking_connection" "database_private_access_network
 }
 
 # -----------------------------------------------------
-# Setup Database Encryption Key
-# -----------------------------------------------------
-
-resource "google_kms_crypto_key_iam_binding" "db_encrypter_decrypter" {
-  crypto_key_id = var.disk_encryption_key_id
-  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  members       = ["serviceAccount:${google_project_service_identity.gcp_sa_cloud_sql.email}"]
-}
-
-resource "google_project_service_identity" "gcp_sa_cloud_sql" {
-  provider = google-beta
-  service  = "sqladmin.googleapis.com"
-}
-
-
-# -----------------------------------------------------
 # Setup Database Cloud SQL Instance
 # -----------------------------------------------------
 resource "random_id" "database_instance_id" {
